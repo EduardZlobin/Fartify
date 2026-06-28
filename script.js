@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ---------- ОСНОВНЫЕ DOM-ЭЛЕМЕНТЫ ----------
+    // ---------- DOM-ЭЛЕМЕНТЫ ----------
     const mainContent = document.getElementById('main-content');
     const artistPage = document.getElementById('artist-page');
     const backBtn = document.getElementById('back-btn');
@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const popularTracksList = document.getElementById('popular-tracks-list');
     const artistAlbumsGrid = document.getElementById('artist-albums-grid');
 
-    const grid = document.getElementById('albums-grid');
+    const artistsGrid = document.getElementById('artists-grid');
+    const albumsGrid = document.getElementById('albums-grid'); // "Для вас"
+
     const modal = document.getElementById('album-modal');
     const modalCover = document.getElementById('modal-cover');
     const modalTitle = document.getElementById('modal-title');
@@ -45,70 +47,69 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeOnIcon = document.getElementById('volume-on-icon');
     const volumeOffIcon = document.getElementById('volume-off-icon');
 
-    // Модальное окно для большой обложки
     const imageModal = document.getElementById('image-modal');
     const imageModalImg = document.getElementById('image-modal-img');
     const closeImageModal = imageModal ? imageModal.querySelector('.close') : null;
 
     // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
+    let allAlbums = [];         // данные из data.json
+    let artistsMap = {};        // данные из artists.json (ключ – имя артиста)
     let currentAlbum = null;
     let currentTrackIndex = 0;
     let shuffle = false;
-    let repeat = 'none';
+    let repeat = 'none';        // 'none', 'all', 'one'
     let history = [];
     let lastVolume = 0.7;
-    let allAlbums = [];
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     audio.volume = 0.7;
     updateVolumeUI();
 
-    fetch('data.json')
-    .then(res => res.json())
-    .then(data => {
-        allAlbums = data;
+    // ---------- ЗАГРУЗКА ДАННЫХ ----------
+    Promise.all([
+        fetch('data.json').then(r => r.json()),
+        fetch('artists.json').then(r => r.json()).catch(() => [])
+    ])
+    .then(([albumsData, artistsData]) => {
+        allAlbums = albumsData;
 
-        // Уникальные исполнители (по имени)
+        // Заполняем artistsMap
+        artistsMap = {};
+        artistsData.forEach(a => { artistsMap[a.name] = a; });
+
+        // Уникальные исполнители (с аватарками)
         const uniqueArtists = [];
         const seen = new Set();
-        data.forEach(album => {
+        albumsData.forEach(album => {
             if (!seen.has(album.artist)) {
                 seen.add(album.artist);
-                // Для аватарки берём обложку последнего альбома этого артиста (можно искать по всему массиву)
-                const artistAlbums = data.filter(a => a.artist === album.artist);
-                const lastAlbum = artistAlbums[artistAlbums.length - 1];
+                const artistInfo = artistsMap[album.artist];
                 uniqueArtists.push({
                     name: album.artist,
-                    cover: lastAlbum.cover
+                    cover: artistInfo ? artistInfo.avatar : getLatestAlbumCover(album.artist)
                 });
             }
         });
 
         // Перемешиваем альбомы для "Для вас"
-        const shuffled = [...data].sort(() => Math.random() - 0.5);
+        const shuffled = [...albumsData].sort(() => Math.random() - 0.5);
 
         renderArtists(uniqueArtists);
-        renderAlbums(shuffled); // уже есть функция renderAlbums, она заполнит #albums-grid
+        renderAlbums(shuffled);
     })
-    .catch(err => console.error('Ошибка загрузки data.json:', err));
+    .catch(err => console.error('Ошибка загрузки данных:', err));
 
     // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
-    function renderArtists(artists) {
-    const artistsGrid = document.getElementById('artists-grid');
-    artistsGrid.innerHTML = '';
-    artists.forEach(artist => {
-        const card = document.createElement('div');
-        card.className = 'artist-card';
-        card.innerHTML = `
-            <img src="photo/${artist.cover}" alt="${artist.name}" onerror="this.src='photo/placeholder.jpg'">
-            <div class="artist-name">${artist.name}</div>
-        `;
-        card.addEventListener('click', () => {
-            showArtistPage(artist.name);
+    function getLatestAlbumCover(artistName) {
+        const artistAlbums = allAlbums.filter(a => a.artist === artistName);
+        if (artistAlbums.length === 0) return 'placeholder.jpg';
+        let latest = artistAlbums[0];
+        artistAlbums.forEach(a => {
+            if (a.date && latest.date && a.date > latest.date) latest = a;
+            else if (a.date && !latest.date) latest = a;
         });
-        artistsGrid.appendChild(card);
-    });
-}
+        return latest.cover;
+    }
 
     function getAlbumType(count) {
         if (count === 1) return 'Сингл';
@@ -142,9 +143,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     }
 
-    // ---------- ОТРИСОВКА СЕТКИ АЛЬБОМОВ ----------
+    // ---------- ОТРИСОВКА ИСПОЛНИТЕЛЕЙ ----------
+    function renderArtists(artists) {
+        artistsGrid.innerHTML = '';
+        artists.forEach(artist => {
+            const card = document.createElement('div');
+            card.className = 'artist-card';
+            card.innerHTML = `
+                <img src="photo/${artist.cover}" alt="${artist.name}" onerror="this.src='photo/placeholder.jpg'">
+                <div class="artist-name">${artist.name}</div>
+            `;
+            card.addEventListener('click', () => {
+                showArtistPage(artist.name);
+            });
+            artistsGrid.appendChild(card);
+        });
+    }
+
+    // ---------- ОТРИСОВКА АЛЬБОМОВ ----------
     function renderAlbums(albums) {
-        grid.innerHTML = '';
+        albumsGrid.innerHTML = '';
         albums.forEach(album => {
             const type = getAlbumType(album.tracks.length);
             const card = document.createElement('div');
@@ -157,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="date">${album.date || ''}</div>
             `;
             card.addEventListener('click', () => openModal(album, type));
-            grid.appendChild(card);
+            albumsGrid.appendChild(card);
         });
     }
 
@@ -388,19 +406,26 @@ document.addEventListener('DOMContentLoaded', () => {
         updateVolumeUI();
     });
 
-    // ---------- ЗАКРЫТИЕ МОДАЛКИ АЛЬБОМА ----------
+    // ---------- ЗАКРЫТИЕ МОДАЛОК ----------
     closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
     window.addEventListener('click', (e) => {
         if (e.target === modal) modal.classList.add('hidden');
+        if (e.target === imageModal) imageModal.classList.add('hidden');
     });
+
+    if (closeImageModal) {
+        closeImageModal.addEventListener('click', () => imageModal.classList.add('hidden'));
+    }
 
     // ========== СТРАНИЦА АРТИСТА ==========
     function showArtistPage(artistName) {
         const artistAlbums = allAlbums.filter(album => album.artist === artistName);
         if (artistAlbums.length === 0) return;
 
-        const lastAlbum = artistAlbums[artistAlbums.length - 1];
-        artistAvatar.src = `photo/${lastAlbum.cover}`;
+        // Аватарка: из artists.json, иначе последний альбом
+        const artistEntry = artistsMap[artistName];
+        const avatarFile = artistEntry ? artistEntry.avatar : getLatestAlbumCover(artistName);
+        artistAvatar.src = `photo/${avatarFile}`;
         artistAvatar.onerror = () => { artistAvatar.src = 'photo/placeholder.jpg'; };
         artistNameElem.textContent = artistName;
 
@@ -423,7 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .sort((a, b) => parsePlays(b.plays) - parsePlays(a.plays))
             .slice(0, 5);
 
-        // Популярные треки
+        // Популярные треки (с обложкой)
         popularTracksList.innerHTML = '';
         topTracks.forEach((track, idx) => {
             const row = document.createElement('li');
@@ -443,13 +468,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentAlbum = albumOfTrack;
                     const trackIndex = albumOfTrack.tracks.findIndex(t => t.file === track.file);
                     playTrackByIndex(trackIndex);
-                    // НЕ закрываем страницу артиста
                 }
             });
             popularTracksList.appendChild(row);
         });
 
-        // Кнопка Play: запускает первый трек из топа
+        // Кнопка Play
         artistPlayBtn.onclick = () => {
             if (topTracks.length > 0) {
                 const firstTrack = topTracks[0];
@@ -460,7 +484,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentAlbum = albumOfTrack;
                     const idx = albumOfTrack.tracks.findIndex(t => t.file === firstTrack.file);
                     playTrackByIndex(idx);
-                    // Страница не закрывается
                 }
             }
         };
@@ -488,27 +511,16 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo(0, 0);
     }
 
-    // Обработчик клика по имени артиста в плеере
+    // ---------- ОБРАБОТЧИКИ КЛИКОВ В ПЛЕЕРЕ ----------
     playerArtist.addEventListener('click', () => {
         if (!currentAlbum) return;
         showArtistPage(currentAlbum.artist);
     });
 
-    // Обработчик клика по обложке в плеере (увеличение)
     playerCover.addEventListener('click', () => {
         if (!currentAlbum) return;
         imageModalImg.src = `photo/${currentAlbum.cover}`;
         imageModal.classList.remove('hidden');
-    });
-
-    // Закрытие модалки с картинкой
-    if (closeImageModal) {
-        closeImageModal.addEventListener('click', () => {
-            imageModal.classList.add('hidden');
-        });
-    }
-    window.addEventListener('click', (e) => {
-        if (e.target === imageModal) imageModal.classList.add('hidden');
     });
 
     // Кнопка «На главную»
@@ -517,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContent.classList.remove('hidden');
     });
 
-    // Экспорт для совместимости
+    // Экспорт для совместимости (необязательно)
     window.playTrack = (track, album) => {
         currentAlbum = album;
         const index = album.tracks.findIndex(t => t.file === track.file);

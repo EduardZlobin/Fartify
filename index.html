@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fartify — Слушайте музыку бесплатно</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1></h1>
+    </header>
+
+    <main>
+        <!-- Основной контент (сетка альбомов) -->
+        <div id="main-content">
+    <!-- Секция "Исполнители" -->
+    <section id="artists-section" class="section">
+        <h2 class="section-title">Исполнители</h2>
+        <div id="artists-grid" class="artists-grid"></div>
+    </section>
+
+    <!-- Секция "Для вас" (альбомы в случайном порядке) -->
+    <section id="for-you-section" class="section">
+        <h2 class="section-title">Для вас</h2>
+        <div id="albums-grid" class="albums-grid"></div>
+    </section>
+</div>
+
+        <!-- Страница исполнителя -->
+        <div id="artist-page" class="artist-page hidden">
+            <button id="back-btn" class="back-btn">← На главную</button>
+            <div class="artist-header">
+                <img id="artist-avatar" src="" alt="Аватар" class="artist-avatar">
+                <div class="artist-info">
+                    <div class="artist-name-row">
+                        <h2 id="artist-name">Имя артиста</h2>
+                        <span class="verified-badge" title="Одобрено Fartify">✔</span>
+                    </div>
+                    <button id="artist-play-btn" class="artist-play-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="6,3 20,12 6,21"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="popular-tracks-section">
+                <h3>Популярные треки</h3>
+                <div class="tracks-header">
+                    <span>#</span>
+                    <span>Название</span>
+                    <span>Прослушивания</span>
+                    <span>Длительность</span>
+                </div>
+                <ul id="popular-tracks-list" class="tracks-list"></ul>
+            </div>
+
+            <div class="artist-albums-section">
+                <h3>Музыка</h3>
+                <div id="artist-albums-grid" class="albums-grid"></div>
+            </div>
+        </div>
+
+        <!-- Плеер -->
+        <div id="player" class="player hidden">
+            <div class="player-left">
+                <img id="player-cover" src="" alt="Обложка" class="player-cover-img">
+                <div>
+                    <div id="player-title">Название трека</div>
+                    <div id="player-artist" class="player-artist-clickable">Исполнитель</div>
+                </div>
+            </div>
+
+            <div class="player-center">
+                <div class="player-controls">
+                    <!-- Shuffle -->
+                    <button id="shuffle-btn" class="control-btn" title="Перемешать">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+                            <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+                            <line x1="4" y1="4" x2="9" y2="9"/>
+                        </svg>
+                    </button>
+                    <button id="prev-btn" class="control-btn" title="Предыдущий трек">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <rect x="2" y="4" width="4" height="16" rx="0.5"/><polygon points="10,4 22,12 10,20"/>
+                        </svg>
+                    </button>
+                    <button id="play-pause-btn" class="control-btn play-btn" title="Плей / Пауза">
+                        <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5,3 21,12 5,21"/>
+                        </svg>
+                        <svg id="pause-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                            <rect x="4" y="3" width="6" height="18" rx="0.5"/><rect x="14" y="3" width="6" height="18" rx="0.5"/>
+                        </svg>
+                    </button>
+                    <button id="next-btn" class="control-btn" title="Следующий трек">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="2,4 14,12 2,20"/><rect x="18" y="4" width="4" height="16" rx="0.5"/>
+                        </svg>
+                    </button>
+                    <button id="repeat-btn" class="control-btn" title="Повтор">
+                        <svg id="repeat-all-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                            <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                        </svg>
+                        <svg id="repeat-one-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                            <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                            <text x="10" y="15" font-size="8" font-weight="bold" fill="currentColor" stroke="none">1</text>
+                        </svg>
+                    </button>
+                </div>
+                <div class="progress-container">
+                    <span id="current-time" class="time">0:00</span>
+                    <div class="progress-track">
+                        <div id="progress-fill" class="progress-fill" style="width: 0%;"></div>
+                        <input type="range" id="progress-bar" class="progress-bar" min="0" max="100" value="0" step="0.1">
+                    </div>
+                    <span id="duration" class="time">0:00</span>
+                </div>
+            </div>
+
+            <div class="player-right">
+                <div class="volume-container">
+                    <button id="volume-btn" class="control-btn volume-icon" title="Громкость">
+                        <svg id="volume-on-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        </svg>
+                        <svg id="volume-off-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+                        </svg>
+                    </button>
+                    <div class="volume-track">
+                        <div id="volume-fill" class="volume-fill" style="width: 70%;"></div>
+                        <input type="range" id="volume-bar" class="volume-bar" min="0" max="100" value="70" step="1">
+                    </div>
+                </div>
+            </div>
+            <audio id="audio"></audio>
+        </div>
+    </main>
+
+    <!-- Модальное окно альбома (оставим) -->
+    <div id="album-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <img id="modal-cover" src="" alt="Обложка">
+                <div class="modal-info">
+                    <span id="modal-type" class="modal-type-label">Тип</span>
+                    <h2 id="modal-title">Название</h2>
+                    <div id="modal-meta" class="modal-meta"></div>
+                    <button id="modal-play-btn" class="modal-play-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="6,3 20,12 6,21"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-tracks-table">
+                <div class="tracks-header">
+                    <span>#</span>
+                    <span>Название</span>
+                    <span>Прослушивания</span>
+                    <span>Длительность</span>
+                </div>
+                <ul id="modal-tracks" class="tracks-list"></ul>
+            </div>
+            <div class="modal-footer">
+                <span id="modal-footer-date"></span>
+                <span id="modal-footer-label"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для большой обложки -->
+    <div id="image-modal" class="modal hidden">
+        <div class="image-modal-content">
+            <span class="close">&times;</span>
+            <img id="image-modal-img" src="" alt="Обложка">
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

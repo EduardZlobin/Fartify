@@ -1,0 +1,403 @@
+[
+    {
+        "title": "Калiтка буде бита",
+        "artist": "RadioGladoon",
+        "cover": "2.png",
+        "date": "2026-03-03",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Калiтка буде бита",
+                "file": "1.mp3",
+                "duration": "0:30",
+                "plays": "12 273"
+            }
+        ]
+    },
+    {
+        "title": "POXER&NAXER",
+        "artist": "RadioGladoon",
+        "cover": "1.jpg",
+        "date": "2026-04-11",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Десять и один Гладун",
+                "file": "39.mp3",
+                "duration": "1:14",
+                "plays": "38 128"
+            },
+            {
+                "title": "Эдик верит в перемогу",
+                "file": "37.mp3",
+                "duration": "0:36",
+                "plays": "39 238"
+            },
+            {
+                "title": "Шоколадница ВСЁ",
+                "file": "40.mp3",
+                "duration": "0:56",
+                "plays": "68 993"
+            },
+            {
+                "title": "Гигабайт",
+                "file": "41.mp3",
+                "duration": "1:14",
+                "plays": "29 973"
+            },
+            {
+                "title": "Помолился но не помылся",
+                "file": "42.mp3",
+                "duration": "1:02",
+                "plays": "42 443"
+            },
+            {
+                "title": "Родинка на попе",
+                "file": "43.mp3",
+                "duration": "0:34",
+                "plays": "27 753"
+            },
+            {
+                "title": "Колонка",
+                "file": "44.mp3",
+                "duration": "2:00",
+                "plays": "26 265"
+            },
+            {
+                "title": "Не плачь Физрук",
+                "file": "45.mp3",
+                "duration": "1:17",
+                "plays": "14 880"
+            },
+            {
+                "title": "Блять, горох разлетелся (autro)",
+                "file": "38.mp3",
+                "duration": "0:34",
+                "plays": "35 248"
+            }
+        ]
+    },
+    {
+        "title": "Тупица по имени Гладун (Новогодний выпуск)",
+        "artist": "RadioGladoon",
+        "cover": "3.png",
+        "date": "2026-03-04",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Калiтка буде бита",
+                "file": "1.mp3",
+                "duration": "0:30",
+                "plays": "7 273"
+            },
+            {
+                "title": "Додому бiстро",
+                "file": "2.mp3",
+                "duration": "0:30",
+                "plays": "17 243"
+            },
+            {
+                "title": "Зеленский",
+                "file": "3.mp3",
+                "duration": "0:30",
+                "plays": "4 273"
+            },
+            {
+                "title": "Давить горох",
+                "file": "4.mp3",
+                "duration": "0:30",
+                "plays": "48 311"
+            },
+            {
+                "title": "Десять Гладунiв",
+                "file": "5.mp3",
+                "duration": "0:30",
+                "plays": "66 204"
+            },
+            {
+                "title": "Це просто ерунда",
+                "file": "6.mp3",
+                "duration": "0:30",
+                "plays": "11 083"
+            },
+            {
+                "title": "Новогодний GabeN",
+                "file": "7.m4a",
+                "duration": "0:55",
+                "plays": "7 110"
+            },
+            {
+                "title": "С новым годом !",
+                "file": "8.mp3",
+                "duration": "1:18",
+                "plays": "8 458"
+            },
+            {
+                "title": "Санта Клаус",
+                "file": "9.MP3",
+                "duration": "2:02",
+                "plays": "10 603"
+            },
+            {
+                "title": "Обращение к Серёге",
+                "file": "10.mp3",
+                "duration": "0:30",
+                "plays": "13 932"
+            },
+            {
+                "title": "С глвым годом ! (REMIX)",
+                "file": "27.mp3",
+                "duration": "0:30",
+                "plays": "17 603"
+            },
+            {
+                "title": "Колыбельная",
+                "file": "11.mp3",
+                "duration": "0:30",
+                "plays": "903"
+            }
+
+        ]
+    },
+    {
+        "title": "ТЫЦН-ДЫЦН",
+        "artist": "БОРИК",
+        "cover": "4.png",
+        "date": "2025-09-26",
+        "label": "© 2025 S&P Digital⠀⠀⠀℗ 2025 S&P Digital",
+        "tracks": [
+            {
+                "title": "ТЫЦН-ДЫЦН",
+                "file": "12.m4a",
+                "duration": "0:30",
+                "plays": "572 311"
+            }
+        ]
+    },
+    {
+        "title": "Gladoon feat Deluxe",
+        "artist": "ГоzZаказ (ОПГ MUSIC)",
+        "cover": "5.png",
+        "date": "2026-03-12",
+        "label": "© 2026 Pi33MANIA⠀⠀⠀℗ 2026 Pi33MANIA",
+        "tracks": [
+            {
+                "title": "Возьми телефон шляпа",
+                "file": "13.MP3",
+                "duration": "1:10",
+                "plays": "12 793 743"
+            },
+            {
+                "title": "Санта Клаус",
+                "file": "9.MP3",
+                "duration": "2:02",
+                "plays": "20 867 411"
+            },
+            {
+                "title": "8 миля",
+                "file": "14.MP3",
+                "duration": "1:01",
+                "plays": "11 996 439"
+            },
+            {
+                "title": "Опионариум",
+                "file": "15.mp4",
+                "duration": "2:30",
+                "plays": "5 547 005"
+            },
+            {
+                "title": "Бассок",
+                "file": "16.MP3",
+                "duration": "0:28",
+                "plays": "11 791 780"
+            },
+            {
+                "title": "Проклятие Гладуна",
+                "file": "2D.MP3",
+                "duration": "0:52",
+                "plays": "1 283 994"
+            },
+            {
+                "title": "По дубаю ракетой въебали",
+                "file": "19.MP3",
+                "duration": "1:09",
+                "plays": "20 542 544"
+            }
+        ]
+    },
+    {
+        "title": "Гладун под ЛСД",
+        "artist": "RadioGladoon",
+        "cover": "6.png",
+        "date": "2026-04-05",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Гладуну завтра до Заброды",
+                "file": "17.mp3",
+                "duration": "0:30",
+                "plays": "55 703"
+            },
+            {
+                "title": "Завтра рано до Заброды",
+                "file": "18.mp3",
+                "duration": "0:30",
+                "plays": "32 322"
+            },
+            {
+                "title": "В дурку",
+                "file": "20.mp3",
+                "duration": "0:30",
+                "plays": "58 200"
+            },
+            {
+                "title": "В дурку (REMIX)",
+                "file": "21.mp3",
+                "duration": "0:30",
+                "plays": "54 179"
+            },
+            {
+                "title": "Шоколадницу взломали",
+                "file": "22.mp3",
+                "duration": "0:30",
+                "plays": "38 543"
+            },
+            {
+                "title": "Котлеты",
+                "file": "23.mp4",
+                "duration": "0:30",
+                "plays": "61 071"
+            },
+            {
+                "title": "Гладун Пиздун",
+                "file": "25.mp3",
+                "duration": "0:30",
+                "plays": "54 239"
+            },
+            {
+                "title": "Эдик хочет в Тамбов",
+                "file": "26.mp3",
+                "duration": "0:30",
+                "plays": "39 291"
+            },
+            {
+                "title": "Все паздравляба",
+                "file": "28.mp3",
+                "duration": "0:30",
+                "plays": "41 493"
+            },
+            {
+                "title": "Сказочный мальчик",
+                "file": "29.mp3",
+                "duration": "0:30",
+                "plays": "46 390"
+            },
+            {
+                "title": "Давайте Эдикам",
+                "file": "30.mp3",
+                "duration": "0:30",
+                "plays": "52 265"
+            },
+            {
+                "title": "Давайте Гладунам",
+                "file": "31.mp3",
+                "duration": "0:30",
+                "plays": "36 867"
+            }
+        ]
+    },
+    {
+        "title": "Болит Голова",
+        "artist": "RadioGladoon",
+        "cover": "7.png",
+        "date": "2026-06-28",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Болит Голова",
+                "file": "57.MP3",
+                "duration": "2:30",
+                "plays": "67 394"
+            }
+        ]
+    },
+    {
+        "title": "2Gladoon2 feat Deluxe",
+        "artist": "ГоzZаказ (ОПГ MUSIC)",
+        "cover": "9.png",
+        "date": "2026-06-20",
+        "label": "© 2026 Pi33MANIA⠀⠀⠀℗ 2026 Pi33MANIA",
+        "tracks": [
+            
+            {
+                "title": "Зацепила (фристайл)",
+                "file": "51.mp3",
+                "duration": "1:14",
+                "plays": "27 843"
+            },
+            {
+                "title": "Я превращаюсь в физюка",
+                "file": "52.mp3",
+                "duration": "2:06",
+                "plays": "92 563"
+            },
+            {
+                "title": "Дохтур похметолог я, да",
+                "file": "53.MP3",
+                "duration": "0:26",
+                "plays": "12 833"
+            },
+            {
+                "title": "Мне похуй на фiзру",
+                "file": "54.mp3",
+                "duration": "1:46",
+                "plays": "52 524"
+            },
+            {
+                "title": "Давай Кинем Барыгу",
+                "file": "32.MP3",
+                "duration": "0:55",
+                "plays": "131 199"
+            },
+            {
+                "title": "Не могу",
+                "file": "33.MP3",
+                "duration": "0:54",
+                "plays": "256 406"
+            },
+            {
+                "title": "Пiдар ***** Уёбок",
+                "file": "34.MP3",
+                "duration": "0:51",
+                "plays": "7 288 714"
+            }
+        ]
+    },
+    {
+        "title": "СХИК 3",
+        "artist": "Кишлак",
+        "cover": "10.jpg",
+        "date": "2026-06-29",
+        "label": "© 2026 Pi33MANIA⠀⠀⠀℗ 2026 Pi33MANIA",
+        "tracks": [
+            {
+                "title": "Опионариум",
+                "file": "15.mp4",
+                "duration": "2:30",
+                "plays": "5 547 005"
+            },
+            {
+                "title": "Я превращаюсь в физюка",
+                "file": "52.mp3",
+                "duration": "2:06",
+                "plays": "92 563"
+            },
+            {
+                "title": "Мне похуй на фiзру",
+                "file": "54.mp3",
+                "duration": "1:46",
+                "plays": "52 524"
+            }
+        ]
+    }
+]

@@ -15,6 +15,21 @@
         ]
     },
     {
+        "title": "Шоколадница ВСЁ",
+        "artist": "RadioGladoon",
+        "cover": "11.jpg",
+        "date": "2026-04-03",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Шоколадница ВСЁ",
+                "file": "40.mp3",
+                "duration": "0:56",
+                "plays": "68 993"
+            }
+        ]
+    },
+    {
         "title": "POXER&NAXER",
         "artist": "RadioGladoon",
         "cover": "1.jpg",
@@ -37,7 +52,7 @@
                 "title": "Шоколадница ВСЁ",
                 "file": "40.mp3",
                 "duration": "0:56",
-                "plays": "68 993"
+                "plays": "38 993"
             },
             {
                 "title": "Гигабайт",

@@ -564,3 +564,67 @@ header {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ---------- Баннер рекомендаций (центрированный, без искажений) ---------- */
+.recommendation-banner {
+    position: relative;
+    width: 90%;                    /* занимает 80% ширины родителя */
+    max-width: 800px;              /* но не шире 800px */
+    margin: 0 auto 30px;           /* центрирование + отступ снизу */
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    transition: transform 0.3s, box-shadow 0.3s;
+          /* фиксированное соотношение сторон 3:1 */
+    background: #1a1025;           /* фон-заглушка, если картинка не загрузится */
+}
+
+.recommendation-banner:hover {
+    transform: scale(1.01);
+    box-shadow: 0 12px 24px rgba(123,47,247,0.4);
+}
+
+.banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;            /* картинка заполнит блок, обрезая лишнее, без искажений */
+    display: block;
+}
+
+.recommend-play-btn {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #7B2FF7;
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(123,47,247,0.6);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.recommend-play-btn:hover {
+    transform: scale(1.07);
+    box-shadow: 0 6px 20px rgba(123,47,247,0.8);
+}
+
+/* Блокированная кнопка shuffle (серая) */
+#shuffle-btn:disabled {
+    color: #6b6b6b !important;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+#shuffle-btn:disabled:hover {
+    color: #555 !important;
+    transform: none;
+}
+
+#main-content {
+    padding: 20px 0;
+}

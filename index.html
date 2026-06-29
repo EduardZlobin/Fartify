@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fartify — Слушайте музыку бесплатно</title>
+    <title>Fartify — Слушайте музыку наххер</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,33 +12,36 @@
     </header>
 
     <main>
-        <!-- Основной контент (сетка альбомов) -->
+        <!-- Основной контент -->
         <div id="main-content">
-            
-    <div id="main-content">
-    <!-- Баннер рекомендаций -->
-    <div id="recommendation-banner" class="recommendation-banner">
-        <img src="photo/banner.png" alt="Рекомендации" class="banner-img" onerror="this.style.display='none'">
-        <button id="recommend-play-btn" class="recommend-play-btn">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="6,3 20,12 6,21"/>
-            </svg>
-        </button>
-    </div>
+            <!-- Баннер рекомендаций -->
+            <div id="recommendation-banner" class="recommendation-banner">
+                <img src="photo/banner.png" alt="Рекомендации" class="banner-img" onerror="this.style.display='none'">
+                <button id="recommend-play-btn" class="recommend-play-btn">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="6,3 20,12 6,21"/>
+                    </svg>
+                </button>
+            </div>
 
-    <!-- Секция "Исполнители" -->
-    <section id="artists-section" class="section">
-        <h2 class="section-title">Исполнители</h2>
-        <div id="artists-grid" class="artists-grid"></div>
-    </section>
+            <!-- Плейлисты (Избранное) -->
+            <section id="playlists-section" class="section">
+                <h2 class="section-title">Плейлисты</h2>
+                <div id="playlists-grid" class="playlists-grid"></div>
+            </section>
 
-    <!-- Секция "Для вас" -->
-    <section id="for-you-section" class="section">
-        <h2 class="section-title">Для вас</h2>
-        <div id="albums-grid" class="albums-grid"></div>
-    </section>
-</div>
-</div>
+            <!-- Секция "Исполнители" -->
+            <section id="artists-section" class="section">
+                <h2 class="section-title">Исполнители</h2>
+                <div id="artists-grid" class="artists-grid"></div>
+            </section>
+
+            <!-- Секция "Для вас" -->
+            <section id="for-you-section" class="section">
+                <h2 class="section-title">Для вас</h2>
+                <div id="albums-grid" class="albums-grid"></div>
+            </section>
+        </div>
 
         <!-- Страница исполнителя -->
         <div id="artist-page" class="artist-page hidden">
@@ -50,6 +53,7 @@
                         <h2 id="artist-name">Имя артиста</h2>
                         <span class="verified-badge" title="Одобрено Fartify">✔</span>
                     </div>
+                    <div id="artist-total-plays" class="artist-total-plays"></div>
                     <button id="artist-play-btn" class="artist-play-btn">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                             <polygon points="6,3 20,12 6,21"/>
@@ -83,11 +87,15 @@
                     <div id="player-title">Название трека</div>
                     <div id="player-artist" class="player-artist-clickable">Исполнитель</div>
                 </div>
+                <button id="player-favorite-btn" class="favorite-btn" title="Добавить в избранное">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                </button>
             </div>
 
             <div class="player-center">
                 <div class="player-controls">
-                    <!-- Shuffle -->
                     <button id="shuffle-btn" class="control-btn" title="Перемешать">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
@@ -155,7 +163,7 @@
         </div>
     </main>
 
-    <!-- Модальное окно альбома (оставим) -->
+    <!-- Модальное окно альбома -->
     <div id="album-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -178,6 +186,7 @@
                     <span>Название</span>
                     <span>Прослушивания</span>
                     <span>Длительность</span>
+                    <span></span> <!-- сердечко -->
                 </div>
                 <ul id="modal-tracks" class="tracks-list"></ul>
             </div>
@@ -187,6 +196,40 @@
             </div>
         </div>
     </div>
+
+    <!-- Модальное окно плейлиста -->
+    <div id="playlist-modal" class="modal hidden">
+    <div class="modal-content playlist-modal-content">
+        <span class="close">&times;</span>
+        <div class="playlist-header">
+            <img id="playlist-modal-cover" src="photo/favorites.png" alt="Обложка плейлиста" class="playlist-modal-cover">
+            <div class="playlist-info">
+                <span class="playlist-type-label">Плейлист</span>
+                <h2 id="playlist-modal-title">Избранное</h2>
+                <div id="playlist-modal-meta" class="playlist-meta"></div>
+                <button id="playlist-play-btn" class="modal-play-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="6,3 20,12 6,21"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Вот этот блок важен -->
+        <div class="playlist-tracks-table">
+            <div class="tracks-header">
+                <span>#</span>
+                <span></span>            <!-- обложка -->
+                <span>Название</span>
+                <span>Альбом</span>
+                <span>Дата добавления</span>
+                <span>Длительность</span>
+                <span></span>            <!-- сердечко -->
+            </div>
+            <ul id="playlist-tracks" class="tracks-list"></ul>
+        </div>
+    </div>
+</div>
 
     <!-- Модальное окно для большой обложки -->
     <div id="image-modal" class="modal hidden">

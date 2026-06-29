@@ -10,7 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const artistAlbumsGrid = document.getElementById('artist-albums-grid');
 
     const artistsGrid = document.getElementById('artists-grid');
-    const albumsGrid = document.getElementById('albums-grid'); // "Для вас"
+    const albumsGrid = document.getElementById('albums-grid');
+
+    const recommendBanner = document.getElementById('recommendation-banner');
+    const recommendPlayBtn = document.getElementById('recommend-play-btn');
 
     const modal = document.getElementById('album-modal');
     const modalCover = document.getElementById('modal-cover');
@@ -52,14 +55,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeImageModal = imageModal ? imageModal.querySelector('.close') : null;
 
     // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
-    let allAlbums = [];         // данные из data.json
-    let artistsMap = {};        // данные из artists.json (ключ – имя артиста)
+    let allAlbums = [];
+    let artistsMap = {};
     let currentAlbum = null;
     let currentTrackIndex = 0;
     let shuffle = false;
-    let repeat = 'none';        // 'none', 'all', 'one'
+    let repeat = 'none';
     let history = [];
     let lastVolume = 0.7;
+
+    // Рекомендации (глобальный плейлист)
+    let isGlobalShuffle = false;          // включены ли рекомендации
+    let globalPlaylist = [];              // все треки (перемешанные)
+    let globalCurrentIndex = -1;
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     audio.volume = 0.7;
@@ -72,12 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
     ])
     .then(([albumsData, artistsData]) => {
         allAlbums = albumsData;
-
-        // Заполняем artistsMap
         artistsMap = {};
         artistsData.forEach(a => { artistsMap[a.name] = a; });
 
-        // Уникальные исполнители (с аватарками)
         const uniqueArtists = [];
         const seen = new Set();
         albumsData.forEach(album => {
@@ -91,9 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Перемешиваем альбомы для "Для вас"
         const shuffled = [...albumsData].sort(() => Math.random() - 0.5);
-
         renderArtists(uniqueArtists);
         renderAlbums(shuffled);
     })
@@ -143,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     }
 
-    // ---------- ОТРИСОВКА ИСПОЛНИТЕЛЕЙ ----------
+    // ---------- ОТРИСОВКА ----------
     function renderArtists(artists) {
         artistsGrid.innerHTML = '';
         artists.forEach(artist => {
@@ -154,13 +157,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="artist-name">${artist.name}</div>
             `;
             card.addEventListener('click', () => {
+                stopGlobalShuffle();
                 showArtistPage(artist.name);
             });
             artistsGrid.appendChild(card);
         });
     }
 
-    // ---------- ОТРИСОВКА АЛЬБОМОВ ----------
     function renderAlbums(albums) {
         albumsGrid.innerHTML = '';
         albums.forEach(album => {
@@ -174,7 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="type">${type}</div>
                 <div class="date">${album.date || ''}</div>
             `;
-            card.addEventListener('click', () => openModal(album, type));
+            card.addEventListener('click', () => {
+                stopGlobalShuffle();
+                openModal(album, type);
+            });
             albumsGrid.appendChild(card);
         });
     }
@@ -204,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         modalPlayBtn.onclick = () => {
+            stopGlobalShuffle();
             playTrackByIndex(0);
             modal.classList.add('hidden');
         };
@@ -220,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
+                stopGlobalShuffle();
                 playTrackByIndex(index);
                 modal.classList.add('hidden');
             });
@@ -232,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('hidden');
     }
 
-    // ---------- ПРОИГРЫВАНИЕ ----------
+    // ---------- ВОСПРОИЗВЕДЕНИЕ ТРЕКА ----------
     function playTrackByIndex(index) {
         if (!currentAlbum) return;
         currentTrackIndex = index;
@@ -242,14 +250,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadAndPlay(track) {
-        audio.src = `music/${track.file}`;
-        playerCover.src = `photo/${currentAlbum.cover}`;
-        playerTitle.textContent = track.title;
-        playerArtist.textContent = currentAlbum.artist;
-        audio.play().catch(e => console.warn('Автовоспроизведение:', e));
-        updatePlayPauseIcon(true);
-    }
-
+    audio.src = `music/${track.file}`;
+    playerCover.src = `photo/${currentAlbum.cover}`;
+    playerTitle.textContent = track.title;
+    playerArtist.textContent = currentAlbum.artist;
+    player.classList.remove('hidden');
+    audio.play().catch(e => console.warn('Автовоспроизведение:', e));
+    updatePlayPauseIcon(true);
+}
     function updatePlayPauseIcon(playing) {
         if (playing) {
             playIcon.style.display = 'none';
@@ -260,6 +268,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ---------- ГЛОБАЛЬНЫЙ ПЛЕЙЛИСТ (РЕКОМЕНДАЦИИ) ----------
+    function buildGlobalPlaylist() {
+        const allTracks = [];
+        allAlbums.forEach(album => {
+            album.tracks.forEach(track => {
+                allTracks.push({
+                    ...track,
+                    artist: album.artist,
+                    cover: album.cover,
+                    albumTitle: album.title
+                });
+            });
+        });
+        return allTracks.sort(() => Math.random() - 0.5);
+    }
+
+    function startGlobalShuffle() {
+        globalPlaylist = buildGlobalPlaylist();
+        if (globalPlaylist.length === 0) return;
+        globalCurrentIndex = 0;
+        isGlobalShuffle = true;
+        shuffle = false;
+        shuffleBtn.classList.remove('active');
+        shuffleBtn.disabled = true;
+        playGlobalTrack();
+    }
+
+    function playGlobalTrack() {
+        if (globalPlaylist.length === 0 || globalCurrentIndex < 0) return;
+        const track = globalPlaylist[globalCurrentIndex];
+        currentAlbum = {
+            artist: track.artist,
+            cover: track.cover,
+            title: track.albumTitle,
+            tracks: [track]
+        };
+        currentTrackIndex = 0;
+        loadAndPlay(track);
+    }
+
+    function stopGlobalShuffle() {
+        if (isGlobalShuffle) {
+            isGlobalShuffle = false;
+            globalPlaylist = [];
+            globalCurrentIndex = -1;
+            shuffleBtn.disabled = false;
+        }
+    }
+
+    function globalNext() {
+        if (globalPlaylist.length === 0) return;
+        globalCurrentIndex = (globalCurrentIndex + 1) % globalPlaylist.length;
+        playGlobalTrack();
+    }
+
+    function globalPrev() {
+        if (globalPlaylist.length === 0) return;
+        globalCurrentIndex = (globalCurrentIndex - 1 + globalPlaylist.length) % globalPlaylist.length;
+        playGlobalTrack();
+    }
+
     // ---------- УПРАВЛЕНИЕ ПЛЕЕРОМ ----------
     function togglePlay() {
         if (!audio.src) return;
@@ -268,6 +337,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function nextTrack() {
+        if (isGlobalShuffle) {
+            globalNext();
+            return;
+        }
         if (!currentAlbum || currentAlbum.tracks.length === 0) return;
         let nextIndex;
         if (shuffle) {
@@ -288,6 +361,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function prevTrack() {
+        if (isGlobalShuffle) {
+            globalPrev();
+            return;
+        }
         if (!currentAlbum || currentAlbum.tracks.length === 0) return;
         if (shuffle && history.length > 1) {
             history.pop();
@@ -302,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function toggleShuffle() {
+        if (isGlobalShuffle) return;
         shuffle = !shuffle;
         if (shuffle) {
             shuffleBtn.classList.add('active');
@@ -422,14 +500,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const artistAlbums = allAlbums.filter(album => album.artist === artistName);
         if (artistAlbums.length === 0) return;
 
-        // Аватарка: из artists.json, иначе последний альбом
         const artistEntry = artistsMap[artistName];
         const avatarFile = artistEntry ? artistEntry.avatar : getLatestAlbumCover(artistName);
         artistAvatar.src = `photo/${avatarFile}`;
         artistAvatar.onerror = () => { artistAvatar.src = 'photo/placeholder.jpg'; };
         artistNameElem.textContent = artistName;
 
-        // Собираем все треки артиста
         const allTracks = [];
         artistAlbums.forEach(album => {
             album.tracks.forEach(track => {
@@ -442,13 +518,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Сортировка по прослушиваниям (числовое значение)
         const parsePlays = (str) => parseInt(str.replace(/\s/g, ''), 10) || 0;
         const topTracks = allTracks
             .sort((a, b) => parsePlays(b.plays) - parsePlays(a.plays))
             .slice(0, 5);
 
-        // Популярные треки (с обложкой)
         popularTracksList.innerHTML = '';
         topTracks.forEach((track, idx) => {
             const row = document.createElement('li');
@@ -461,6 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="track-duration">${track.duration || ''}</span>
             `;
             row.addEventListener('click', () => {
+                stopGlobalShuffle();
                 const albumOfTrack = artistAlbums.find(alb =>
                     alb.tracks.some(t => t.file === track.file)
                 );
@@ -473,8 +548,8 @@ document.addEventListener('DOMContentLoaded', () => {
             popularTracksList.appendChild(row);
         });
 
-        // Кнопка Play
         artistPlayBtn.onclick = () => {
+            stopGlobalShuffle();
             if (topTracks.length > 0) {
                 const firstTrack = topTracks[0];
                 const albumOfTrack = artistAlbums.find(alb =>
@@ -488,7 +563,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // Альбомы артиста
         artistAlbumsGrid.innerHTML = '';
         artistAlbums.forEach(album => {
             const type = getAlbumType(album.tracks.length);
@@ -501,19 +575,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="type">${type}</div>
                 <div class="date">${album.date || ''}</div>
             `;
-            card.addEventListener('click', () => openModal(album, type));
+            card.addEventListener('click', () => {
+                stopGlobalShuffle();
+                openModal(album, type);
+            });
             artistAlbumsGrid.appendChild(card);
         });
 
-        // Переключаемся на страницу артиста
         mainContent.classList.add('hidden');
         artistPage.classList.remove('hidden');
         window.scrollTo(0, 0);
     }
 
-    // ---------- ОБРАБОТЧИКИ КЛИКОВ В ПЛЕЕРЕ ----------
+    // ---------- БАННЕР РЕКОМЕНДАЦИЙ ----------
+    recommendBanner.addEventListener('click', (e) => {
+        if (e.target !== recommendPlayBtn && !recommendPlayBtn.contains(e.target)) {
+            startGlobalShuffle();
+        }
+    });
+
+    recommendPlayBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        startGlobalShuffle();
+    });
+
+    // ---------- ОБРАБОТЧИКИ ПЛЕЕРА ----------
     playerArtist.addEventListener('click', () => {
         if (!currentAlbum) return;
+        stopGlobalShuffle();
         showArtistPage(currentAlbum.artist);
     });
 
@@ -523,14 +612,14 @@ document.addEventListener('DOMContentLoaded', () => {
         imageModal.classList.remove('hidden');
     });
 
-    // Кнопка «На главную»
     backBtn.addEventListener('click', () => {
         artistPage.classList.add('hidden');
         mainContent.classList.remove('hidden');
     });
 
-    // Экспорт для совместимости (необязательно)
+    // Экспорт для совместимости (если нужно)
     window.playTrack = (track, album) => {
+        stopGlobalShuffle();
         currentAlbum = album;
         const index = album.tracks.findIndex(t => t.file === track.file);
         if (index !== -1) playTrackByIndex(index);

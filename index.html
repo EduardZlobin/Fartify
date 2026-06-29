@@ -14,17 +14,30 @@
     <main>
         <!-- Основной контент (сетка альбомов) -->
         <div id="main-content">
+            
+    <div id="main-content">
+    <!-- Баннер рекомендаций -->
+    <div id="recommendation-banner" class="recommendation-banner">
+        <img src="photo/banner.png" alt="Рекомендации" class="banner-img" onerror="this.style.display='none'">
+        <button id="recommend-play-btn" class="recommend-play-btn">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="6,3 20,12 6,21"/>
+            </svg>
+        </button>
+    </div>
+
     <!-- Секция "Исполнители" -->
     <section id="artists-section" class="section">
         <h2 class="section-title">Исполнители</h2>
         <div id="artists-grid" class="artists-grid"></div>
     </section>
 
-    <!-- Секция "Для вас" (альбомы в случайном порядке) -->
+    <!-- Секция "Для вас" -->
     <section id="for-you-section" class="section">
         <h2 class="section-title">Для вас</h2>
         <div id="albums-grid" class="albums-grid"></div>
     </section>
+</div>
 </div>
 
         <!-- Страница исполнителя -->

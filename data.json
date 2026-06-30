@@ -330,7 +330,7 @@
         "tracks": [
             {
                 "title": "Болит Голова",
-                "file": "57.mp3",
+                "file": "57.MP3",
                 "duration": "2:30",
                 "plays": "67 394"
             }
@@ -412,6 +412,117 @@
                 "file": "54.mp3",
                 "duration": "1:46",
                 "plays": "52 524"
+            }
+        ]
+    },
+    {
+        "title": "Остров Эпштейна",
+        "artist": "RadioGladoon",
+        "cover": "11.png",
+        "date": "2026-06-29",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+                        {
+                "title": "Остров Эпштейна",
+                "file": "46.mp3",
+                "duration": "0:34",
+                "plays": "62 955"
+            }
+        ]
+    },
+    {
+        "title": "SIX SEVEN",
+        "artist": "RadioGladoon",
+        "cover": "12.png",
+        "date": "2026-06-29",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+                        {
+                "title": "SIX SEVEN",
+                "file": "48.mp3",
+                "duration": "0:47",
+                "plays": "53 352"
+            }
+        ]
+    },
+    {
+        "title": "Все грехи Эдуарда Злобина",
+        "artist": "RadioGladoon",
+        "cover": "8.png",
+        "date": "2026-06-29",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Эдик intro Vakho prod. (iblan MIX)",
+                "file": "64.mp3",
+                "duration": "2:27",
+                "plays": "35 129"
+            },
+            {
+                "title": "Всех паздравляба !",
+                "file": "65.mp3",
+                "duration": "2:35",
+                "plays": "41 116"
+            },
+            {
+                "title": "Дорогие Джинсы",
+                "file": "62.mp3",
+                "duration": "1:42",
+                "plays": "51 022"
+            },
+            {
+                "title": "Эдь прикупил огромный байк",
+                "file": "58.mp3",
+                "duration": "2:17",
+                "plays": "38 672"
+            },
+            {
+                "title": "Эдик любит, ты смирись",
+                "file": "63.MP3",
+                "duration": "1:59",
+                "plays": "29 100"
+            },
+            {
+                "title": "Марсиане",
+                "file": "59.MP3",
+                "duration": "2:30",
+                "plays": "48 934"
+            },
+            {
+                "title": "Болит Голова",
+                "file": "57.mp3",
+                "duration": "2:12",
+                "plays": "47 314"
+            },
+            {
+                "title": "Эдика подставили",
+                "file": "60.MP3",
+                "duration": "2:19",
+                "plays": "44 566"
+            },
+            {
+                "title": "Грешный Эдик",
+                "file": "50.mp3",
+                "duration": "1:06",
+                "plays": "48 843"
+            },
+            {
+                "title": "Тамбов",
+                "file": "66.mp3",
+                "duration": "3:22",
+                "plays": "34 296"
+            },
+            {
+                "title": "Бог со мной",
+                "file": "67.MP3",
+                "duration": "3:03",
+                "plays": "45 010"
+            },
+            {
+                "title": "Меня кстати Эдуард зовут !",
+                "file": "61.MP3",
+                "duration": "1:42",
+                "plays": "51 201"
             }
         ]
     }

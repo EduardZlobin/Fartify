@@ -525,5 +525,20 @@
                 "plays": "51 201"
             }
         ]
+        },
+        {
+        "title": "Привет сосед",
+        "artist": "RadioGladoon",
+        "cover": "14.png",
+        "date": "2026-07-04",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+                        {
+                "title": "Привет сосед",
+                "file": "68.mp3",
+                "duration": "1:16",
+                "plays": "54 542"
+            }
+        ]
     }
 ]

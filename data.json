@@ -537,7 +537,88 @@
                 "title": "Привет сосед",
                 "file": "68.mp3",
                 "duration": "1:16",
+                "plays": "64 542"
+            }
+        ]
+    },
+    {
+        "title": "Инвалиды с детства",
+        "artist": "RadioGladoon",
+        "cover": "15.png",
+        "date": "2026-07-12",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Привет сосед",
+                "file": "68.mp3",
+                "duration": "1:16",
                 "plays": "54 542"
+            },
+            {
+                "title": "Йобнутий гонщик",
+                "file": "71.mp3",
+                "duration": "3:19",
+                "plays": "39 822"
+            },
+            {
+                "title": "Остров Эпштейна",
+                "file": "46.mp3",
+                "duration": "0:34",
+                "plays": "42 805"
+            },
+            {
+                "title": "Я Гладун",
+                "file": "73.mp3",
+                "duration": "1:19",
+                "plays": "61 042"
+            },
+            {
+                "title": "NAVI",
+                "file": "72.mp3",
+                "duration": "2:23",
+                "plays": "59 002"
+            },
+            {
+                "title": "SIX SEVEN",
+                "file": "48.mp3",
+                "duration": "0:47",
+                "plays": "43 552"
+            },
+            {
+                "title": "КТО НАСРАЛ МНЕ В ШТАНЫ???",
+                "file": "70.mp3",
+                "duration": "3:09",
+                "plays": "63 052"
+            },
+            {
+                "title": "Парол Пітер",
+                "file": "77.mp3",
+                "duration": "2:32",
+                "plays": "57 864"
+            },
+            {
+                "title": "Измена",
+                "file": "74.mp3",
+                "duration": "1:20",
+                "plays": "67 607"
+            },
+            {
+                "title": "Самый тупой человек на планете земля",
+                "file": "75.mp3",
+                "duration": "2:49",
+                "plays": "81 775"
+            },
+            {
+                "title": "МАНЬЯКИЧ",
+                "file": "78.mp3",
+                "duration": "2:21",
+                "plays": "51 182"
+            },
+            {
+                "title": "Українські пісні  для тих хто не пердить до утра",
+                "file": "76.mp3",
+                "duration": "2:52",
+                "plays": "59 421"
             }
         ]
     }

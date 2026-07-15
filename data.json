@@ -619,6 +619,19 @@
                 "file": "76.mp3",
                 "duration": "2:52",
                 "plays": "59 421"
+            },
+            {
+            "title": "SIX SEVEN 2",
+            "artist": "RadioGladoon",
+            "cover": "18.png",
+            "date": "2026-07-16",
+            "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+            "tracks": [
+            {
+                "title": "SIX SEVEN 2",
+                "file": "79.mp3",
+                "duration": "1:33",
+                "plays": "71 653"
             }
         ]
     }

@@ -61,6 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeOnIcon = document.getElementById('volume-on-icon');
     const volumeOffIcon = document.getElementById('volume-off-icon');
 
+    const lyricsBtn = document.getElementById('lyrics-btn');
+    const lyricsPanel = document.getElementById('lyrics-panel');
+    const lyricsCover = document.getElementById('lyrics-cover');
+    const lyricsText = document.getElementById('lyrics-text');
+    const lyricsBackground = document.querySelector('.lyrics-background');
+    const lyricsCloseBtn = document.getElementById('lyrics-close-btn');
+
     const imageModal = document.getElementById('image-modal');
     const imageModalImg = document.getElementById('image-modal-img');
     const closeImageModal = imageModal ? imageModal.querySelector('.close') : null;
@@ -79,6 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalCurrentIndex = -1;
     let favorites = [];
 
+    let texts = {};
+    let trackCovers = {};
+
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     audio.volume = 0.7;
     updateVolumeUI();
@@ -86,12 +96,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     Promise.all([
         fetch('data.json').then(r => r.json()),
-        fetch('artists.json').then(r => r.json()).catch(() => [])
+        fetch('artists.json').then(r => r.json()).catch(() => []),
+        fetch('text.json').then(r => r.json()).catch(() => []),
+        fetch('track-covers.json').then(r => r.json()).catch(() => [])
     ])
-    .then(([albumsData, artistsData]) => {
+    .then(([albumsData, artistsData, textData, trackCoverData]) => {
         allAlbums = albumsData;
         artistsMap = {};
         artistsData.forEach(a => { artistsMap[a.name] = a; });
+
+        texts = {};
+        textData.forEach(t => { texts[t.file] = t.text; });
+        trackCovers = {};
+        trackCoverData.forEach(t => { trackCovers[t.file] = t.cover; });
 
         buildUniqueArtists(albumsData);
         buildPlaylists();
@@ -142,6 +159,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const mins = Math.floor(sec / 60) || 0;
         const secs = Math.floor(sec % 60) || 0;
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    function getTrackCover(file, artistAlbums) {
+        if (trackCovers[file]) return trackCovers[file];
+        let latestCover = null;
+        let latestDate = '';
+        allAlbums.forEach(album => {
+            if (album.tracks.some(t => t.file === file)) {
+                if (!latestDate || (album.date && album.date > latestDate)) {
+                    latestDate = album.date || '';
+                    latestCover = album.cover;
+                }
+            }
+        });
+        return latestCover || 'placeholder.jpg';
     }
 
     // ========== ИЗБРАННОЕ ==========
@@ -214,17 +246,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ========== ПОСТРОЕНИЕ ИСПОЛНИТЕЛЕЙ С ПРОСЛУШИВАНИЯМИ ==========
+    // ========== ДЕДУПЛИКАЦИЯ ДЛЯ АРТИСТА ==========
+    function getArtistDeduplicatedStats(artistName) {
+        const artistAlbums = allAlbums.filter(album => album.artist === artistName);
+        const trackMap = new Map();
+
+        artistAlbums.forEach(album => {
+            album.tracks.forEach(track => {
+                const file = track.file;
+                const plays = parseInt(track.plays?.replace(/\s/g, '')) || 0;
+                if (!trackMap.has(file)) {
+                    trackMap.set(file, {
+                        file: file,
+                        title: track.title,
+                        artist: artistName,
+                        plays: plays,
+                        duration: track.duration,
+                        cover: null,
+                        albumDate: album.date
+                    });
+                } else {
+                    const existing = trackMap.get(file);
+                    if (plays > existing.plays) {
+                        existing.plays = plays;
+                        existing.title = track.title;
+                        existing.duration = track.duration;
+                        existing.albumDate = album.date;
+                    }
+                }
+            });
+        });
+
+        for (const [file, track] of trackMap) {
+            track.cover = getTrackCover(file, artistAlbums);
+        }
+
+        const totalPlays = Array.from(trackMap.values()).reduce((sum, t) => sum + t.plays, 0);
+        const topTracks = Array.from(trackMap.values())
+            .sort((a, b) => b.plays - a.plays)
+            .slice(0, 5);
+
+        return { totalPlays, topTracks };
+    }
+
+    // ========== ПОСТРОЕНИЕ ИСПОЛНИТЕЛЕЙ НА ГЛАВНОЙ ==========
     function buildUniqueArtists(albums) {
         const artistStats = {};
         albums.forEach(album => {
             if (!artistStats[album.artist]) {
                 artistStats[album.artist] = { totalPlays: 0, cover: album.cover };
             }
-            album.tracks.forEach(track => {
-                const plays = parseInt(track.plays?.replace(/\s/g, '')) || 0;
-                artistStats[album.artist].totalPlays += plays;
-            });
+            const { totalPlays } = getArtistDeduplicatedStats(album.artist);
+            artistStats[album.artist].totalPlays = totalPlays;
         });
 
         const uniqueArtists = [];
@@ -310,48 +383,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 openPlaylistModal();
             });
             row.addEventListener('click', () => {
-    stopGlobalShuffle();
-    if (favorites.length > 0) {
-        // Создаём фиктивный альбом из всех избранных треков
-        currentAlbum = {
-            artist: 'Избранное',
-            cover: favorites[0].cover,
-            title: 'Избранное',
-            tracks: favorites.map(fav => ({
-                file: fav.file,
-                title: fav.title,
-                artist: fav.artist,
-                cover: fav.cover,
-                albumTitle: fav.albumTitle,
-                duration: fav.duration,
-                plays: fav.plays
-            }))
-        };
-        const idx = currentAlbum.tracks.findIndex(t => t.file === track.file && t.title === track.title);
-        if (idx !== -1) playTrackByIndex(idx);
-    }
-    playlistModal.classList.add('hidden');
-});
+                if (favorites.length > 0) {
+                    stopGlobalShuffle();
+                    currentAlbum = {
+                        artist: 'Избранное',
+                        cover: favorites[0].cover,
+                        title: 'Избранное',
+                        tracks: favorites.map(fav => ({
+                            file: fav.file,
+                            title: fav.title,
+                            artist: fav.artist,
+                            cover: fav.cover,
+                            albumTitle: fav.albumTitle,
+                            duration: fav.duration,
+                            plays: fav.plays
+                        }))
+                    };
+                    const idx = currentAlbum.tracks.findIndex(t => t.file === track.file && t.title === track.title);
+                    if (idx !== -1) playTrackByIndex(idx);
+                }
+                playlistModal.classList.add('hidden');
+            });
             playlistTracksList.appendChild(row);
         });
 
         playlistPlayBtn.onclick = () => {
-    if (favorites.length === 0) return;
-    stopGlobalShuffle();
-    currentAlbum = {
-        artist: 'Избранное',
-        cover: favorites[0].cover,
-        title: 'Избранное',
-        tracks: favorites.map(fav => ({...fav}))
-    };
-    playTrackByIndex(0);
-    playlistModal.classList.add('hidden');
-};
+            if (favorites.length === 0) return;
+            stopGlobalShuffle();
+            currentAlbum = {
+                artist: 'Избранное',
+                cover: favorites[0].cover,
+                title: 'Избранное',
+                tracks: favorites.map(fav => ({...fav}))
+            };
+            playTrackByIndex(0);
+            playlistModal.classList.add('hidden');
+        };
 
         playlistModal.classList.remove('hidden');
     }
 
-    // ---------- ОТРИСОВКА АЛЬБОМОВ ----------
+    // ---------- ОТРИСОВКА АЛЬБОМОВ (с кнопкой Play) ----------
     function renderAlbums(albums) {
         albumsGrid.innerHTML = '';
         albums.forEach(album => {
@@ -364,10 +436,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="artist">${album.artist}</div>
                 <div class="type">${type}</div>
                 <div class="date">${album.date || ''}</div>
+                <button class="album-play-btn" title="Играть">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 21,12 5,21"/>
+                    </svg>
+                </button>
             `;
             card.addEventListener('click', () => {
                 stopGlobalShuffle();
                 openModal(album, type);
+            });
+            card.querySelector('.album-play-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                playAlbumFromModal(album, shuffle ? Math.floor(Math.random() * album.tracks.length) : 0);
             });
             albumsGrid.appendChild(card);
         });
@@ -375,8 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- МОДАЛЬНОЕ ОКНО АЛЬБОМА ----------
     function openModal(album, type) {
-        currentAlbum = album;
-
         modalCover.src = `photo/${album.cover}`;
         modalCover.onerror = () => { modalCover.src = 'photo/placeholder.jpg'; };
         modalTitle.textContent = album.title;
@@ -398,8 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         modalPlayBtn.onclick = () => {
-            stopGlobalShuffle();
-            playTrackByIndex(0);
+            playAlbumFromModal(album, 0);
             modal.classList.add('hidden');
         };
 
@@ -442,8 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
-                stopGlobalShuffle();
-                playTrackByIndex(index);
+                playAlbumFromModal(album, index);
                 modal.classList.add('hidden');
             });
             modalTracks.appendChild(row);
@@ -455,38 +532,63 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('hidden');
     }
 
+    // Новая функция: запуск альбома (устанавливает currentAlbum и начинает воспроизведение)
+    function playAlbumFromModal(album, index = 0) {
+        stopGlobalShuffle();
+        currentAlbum = album;
+        playTrackByIndex(index);
+    }
+
     // ---------- ПРОИГРЫВАНИЕ ТРЕКА ----------
     function playTrackByIndex(index) {
         if (!currentAlbum) return;
         currentTrackIndex = index;
         loadAndPlay(currentAlbum.tracks[currentTrackIndex]);
-        player.classList.remove('hidden');
         if (!history.includes(currentTrackIndex)) history.push(currentTrackIndex);
     }
 
     function loadAndPlay(track) {
         audio.src = `music/${track.file}`;
-        const trackCover = track.cover || currentAlbum.cover;
-        playerCover.src = `photo/${trackCover}`;
-        playerTitle.textContent = track.title;
-        playerArtist.textContent = currentAlbum.artist;
-        player.classList.remove('hidden');
+        const trackCoverFile = track.cover || getTrackCover(track.file, allAlbums.filter(a => a.artist === track.artist));
+        playerCover.src = `photo/${trackCoverFile}`;
+        playerTitle.textContent = track.title || '';
+        playerArtist.textContent = track.artist || (currentAlbum ? currentAlbum.artist : '');
         updatePlayPauseIcon(true);
         const trackWithMeta = {
             file: track.file,
             title: track.title,
-            artist: currentAlbum.artist,
-            cover: currentAlbum.cover,
-            albumTitle: currentAlbum.title,
+            artist: track.artist || (currentAlbum ? currentAlbum.artist : ''),
+            cover: trackCoverFile,
+            albumTitle: track.albumTitle || currentAlbum?.title,
             duration: track.duration,
             plays: track.plays
         };
         const isFav = isFavorite(trackWithMeta);
         playerFavBtn.classList.toggle('active', isFav);
-        playerFavBtn.onclick = () => {
-            toggleFavorite(trackWithMeta);
-        };
+        playerFavBtn.onclick = () => toggleFavorite(trackWithMeta);
         audio.play().catch(e => console.warn('Автовоспроизведение:', e));
+        updateLyricsPanel(track);
+        updateMediaSession(trackWithMeta);
+    }
+
+    function updateMediaSession(track) {
+        if (!('mediaSession' in navigator)) return;
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: track.title || 'Неизвестный трек',
+            artist: track.artist || 'Неизвестный исполнитель',
+            album: track.albumTitle || '',
+            artwork: [
+                { src: `photo/${track.cover || 'placeholder.jpg'}`, sizes: '512x512', type: 'image/jpeg' }
+            ]
+        });
+    }
+
+    function updateLyricsPanel(track) {
+        const text = texts[track.file] || 'Увы, Гладун забыл текст этой песни';
+        lyricsText.textContent = text;
+        const coverFile = track.cover || getTrackCover(track.file, allAlbums.filter(a => a.artist === track.artist));
+        lyricsCover.src = `photo/${coverFile}`;
+        lyricsBackground.style.backgroundImage = `url(photo/${coverFile})`;
     }
 
     function updatePlayPauseIcon(playing) {
@@ -507,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 allTracks.push({
                     ...track,
                     artist: album.artist,
-                    cover: album.cover,
+                    cover: getTrackCover(track.file, [album]),
                     albumTitle: album.title
                 });
             });
@@ -681,8 +783,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    audio.addEventListener('play', () => updatePlayPauseIcon(true));
-    audio.addEventListener('pause', () => updatePlayPauseIcon(false));
+    audio.addEventListener('play', () => {
+        updatePlayPauseIcon(true);
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'playing';
+        }
+    });
+    audio.addEventListener('pause', () => {
+        updatePlayPauseIcon(false);
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = 'paused';
+        }
+    });
 
     // ---------- ГРОМКОСТЬ ----------
     function updateVolumeUI() {
@@ -728,6 +840,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     closePlaylistBtn.addEventListener('click', () => playlistModal.classList.add('hidden'));
 
+    // ========== ПАНЕЛЬ ТЕКСТА ==========
+    lyricsBtn.addEventListener('click', () => {
+        lyricsPanel.classList.toggle('open');
+        document.body.classList.toggle('lyrics-open');
+    });
+
+    lyricsCloseBtn.addEventListener('click', () => {
+        lyricsPanel.classList.remove('open');
+        document.body.classList.remove('lyrics-open');
+    });
+
+    lyricsCover.addEventListener('click', () => {
+        if (!lyricsCover.src) return;
+        imageModalImg.src = lyricsCover.src;
+        imageModal.classList.remove('hidden');
+    });
+
+    // ========== MEDIA KEYS (КЛАВИАТУРА) ==========
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+        if (e.code === 'MediaPlayPause') {
+            e.preventDefault();
+            togglePlay();
+        } else if (e.code === 'MediaTrackNext') {
+            e.preventDefault();
+            nextTrack();
+        } else if (e.code === 'MediaTrackPrevious') {
+            e.preventDefault();
+            prevTrack();
+        }
+    });
+
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', () => {
+            if (audio.paused) {
+                audio.play();
+                updatePlayPauseIcon(true);
+            }
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+            if (!audio.paused) {
+                audio.pause();
+                updatePlayPauseIcon(false);
+            }
+        });
+        navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
+        navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
+    }
+
     // ========== СТРАНИЦА АРТИСТА ==========
     function showArtistPage(artistName) {
         const artistAlbums = allAlbums.filter(album => album.artist === artistName);
@@ -739,92 +900,63 @@ document.addEventListener('DOMContentLoaded', () => {
         artistAvatar.onerror = () => { artistAvatar.src = 'photo/placeholder.jpg'; };
         artistNameElem.textContent = artistName;
 
-        // Суммарные прослушивания
-        let totalPlays = 0;
-        artistAlbums.forEach(album => {
-            album.tracks.forEach(track => {
-                totalPlays += parseInt(track.plays?.replace(/\s/g, '')) || 0;
-            });
-        });
+        const { totalPlays, topTracks } = getArtistDeduplicatedStats(artistName);
         artistTotalPlaysElem.textContent = totalPlays.toLocaleString() + ' прослушиваний';
 
-        // Сбор всех треков для топа
-        const allTracks = [];
-        artistAlbums.forEach(album => {
-            album.tracks.forEach(track => {
-                allTracks.push({
-                    ...track,
-                    artist: album.artist,
-                    cover: album.cover,
-                    albumTitle: album.title
-                });
-            });
-        });
-
-        const parsePlays = (str) => parseInt(str.replace(/\s/g, ''), 10) || 0;
-        const topTracks = allTracks
-            .sort((a, b) => parsePlays(b.plays) - parsePlays(a.plays))
-            .slice(0, 5);
-
-        // Популярные треки (без обложки, без сердечек)
         popularTracksList.innerHTML = '';
         topTracks.forEach((track, idx) => {
             const row = document.createElement('li');
             row.className = 'track-row';
             row.innerHTML = `
-    <img class="track-cover" src="photo/${track.cover}" alt="" onerror="this.style.display='none'">
-    <span class="track-num">${idx + 1}</span>
-    <span class="track-title-col">${track.title}</span>
-    <span class="track-plays">${track.plays || ''}</span>
-    <span class="track-duration">${track.duration || ''}</span>
-`;
-           row.addEventListener('click', () => {
-    stopGlobalShuffle();
-    // Создаём фиктивный альбом из ВСЕХ треков артиста
-    const allTracks = artistAlbums.flatMap(album =>
-        album.tracks.map(t => ({
-            ...t,
-            artist: album.artist,
-            cover: album.cover,
-            albumTitle: album.title
-        }))
-    );
-    currentAlbum = {
-        artist: artistName,
-        cover: allTracks[0]?.cover || artistAlbums[0]?.cover, // начальная обложка
-        title: 'Все треки ' + artistName,
-        tracks: allTracks
-    };
-    const trackIndex = currentAlbum.tracks.findIndex(t => t.file === track.file && t.title === track.title);
-    if (trackIndex !== -1) {
-        playTrackByIndex(trackIndex);
-    }
-});
+                <img class="track-cover" src="photo/${track.cover}" alt="" onerror="this.style.display='none'">
+                <span class="track-num">${idx + 1}</span>
+                <span class="track-title-col">${track.title}</span>
+                <span class="track-plays">${track.plays.toLocaleString()}</span>
+                <span class="track-duration">${track.duration || ''}</span>
+            `;
+            row.addEventListener('click', () => {
+                stopGlobalShuffle();
+                const allTracks = artistAlbums.flatMap(album =>
+                    album.tracks.map(t => ({
+                        ...t,
+                        artist: album.artist,
+                        cover: getTrackCover(t.file, artistAlbums),
+                        albumTitle: album.title
+                    }))
+                );
+                currentAlbum = {
+                    artist: artistName,
+                    cover: allTracks[0]?.cover || avatarFile,
+                    title: 'Все треки ' + artistName,
+                    tracks: allTracks
+                };
+                const index = currentAlbum.tracks.findIndex(t => t.file === track.file);
+                if (index !== -1) playTrackByIndex(index);
+            });
             popularTracksList.appendChild(row);
         });
 
         artistPlayBtn.onclick = () => {
-    stopGlobalShuffle();
-    const allTracks = artistAlbums.flatMap(album =>
-        album.tracks.map(t => ({
-            ...t,
-            artist: album.artist,
-            cover: album.cover,
-            albumTitle: album.title
-        }))
-    );
-    if (allTracks.length > 0) {
-        currentAlbum = {
-            artist: artistName,
-            cover: allTracks[0].cover,
-            title: 'Все треки ' + artistName,
-            tracks: allTracks
+            stopGlobalShuffle();
+            const allTracks = artistAlbums.flatMap(album =>
+                album.tracks.map(t => ({
+                    ...t,
+                    artist: album.artist,
+                    cover: getTrackCover(t.file, artistAlbums),
+                    albumTitle: album.title
+                }))
+            );
+            if (allTracks.length > 0) {
+                currentAlbum = {
+                    artist: artistName,
+                    cover: allTracks[0].cover,
+                    title: 'Все треки ' + artistName,
+                    tracks: allTracks
+                };
+                playTrackByIndex(0);
+            }
         };
-        playTrackByIndex(0);
-    }
-};
 
-        // Альбомы артиста
         artistAlbumsGrid.innerHTML = '';
         artistAlbums.forEach(album => {
             const type = getAlbumType(album.tracks.length);
@@ -866,11 +998,13 @@ document.addEventListener('DOMContentLoaded', () => {
         stopGlobalShuffle();
         showArtistPage(currentAlbum.artist);
     });
+
     playerCover.addEventListener('click', () => {
-        if (!currentAlbum) return;
-        imageModalImg.src = `photo/${currentAlbum.cover}`;
+        if (!playerCover.src) return;
+        imageModalImg.src = playerCover.src;
         imageModal.classList.remove('hidden');
     });
+
     backBtn.addEventListener('click', () => {
         artistPage.classList.add('hidden');
         mainContent.classList.remove('hidden');

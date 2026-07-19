@@ -427,6 +427,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAlbums(albums) {
         albumsGrid.innerHTML = '';
         albums.forEach(album => {
+        // создание карточки...
+        });
+        callFitAfterRender();
+        
+        albums.forEach(album => {
             const type = getAlbumType(album.tracks.length);
             const card = document.createElement('div');
             card.className = 'album-card';
@@ -959,6 +964,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         artistAlbumsGrid.innerHTML = '';
         artistAlbums.forEach(album => {
+            // ...
+        });
+        callFitAfterRender();
+        artistAlbums.forEach(album => {
             const type = getAlbumType(album.tracks.length);
             const card = document.createElement('div');
             card.className = 'album-card';
@@ -1016,4 +1025,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const index = album.tracks.findIndex(t => t.file === track.file);
         if (index !== -1) playTrackByIndex(index);
     };
+    function fitTitleFontSize() {
+    const titles = document.querySelectorAll('.album-card .title, .artist-card .artist-name');
+    titles.forEach(title => {
+        const parent = title.parentElement;
+        const maxWidth = parent.clientWidth - 32; // учитываем padding
+        let fontSize = 16; // начальный размер (как в изначальном CSS)
+        title.style.fontSize = fontSize + 'px';
+
+        while (title.scrollWidth > maxWidth && fontSize > 8) {
+            fontSize -= 0.5;
+            title.style.fontSize = fontSize + 'px';
+        }
+    });
+}
+
+// Вызов после каждого рендера
+function callFitAfterRender() {
+    setTimeout(fitTitleFontSize, 50); // небольшая задержка, чтобы DOM обновился
+}
+window.addEventListener('resize', () => {
+    fitTitleFontSize();
+});
 });

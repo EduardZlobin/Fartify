@@ -255,11 +255,11 @@
   <script src="script.js"></script>
 <!-- SVG-фильтр для очень сильного и медленного жидкого эффекта -->
 <svg style="position: absolute; width: 0; height: 0;">
-    <filter id="liquidFilter" x="-50%" y="-50%" width="5000%" height="5000%">
+    <filter id="liquidFilter" x="-50%" y="-50%" width="99000%" height="99000%">
         <feTurbulence id="turbulence" type="fractalNoise" baseFrequency="0.005 0.008" numOctaves="4" result="noise">
             <animate attributeName="baseFrequency"
                      values="0.005 0.008; 0.01 0.005; 0.008 0.012; 0.005 0.008"
-                     dur="300s" repeatCount="indefinite" />
+                     dur="100s" repeatCount="indefinite" />
         </feTurbulence>
         <feDisplacementMap in="SourceGraphic" in2="noise" scale="200" xChannelSelector="R" yChannelSelector="G" />
     </filter>

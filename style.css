@@ -1,5 +1,5 @@
 /* ===========================================
-   ГА ГА ГА ПАН ЗЕЛЕНСКИЙ ПРИВЕТЬ
+   MySpoty — Тёмная тема (#070709) + кнопка Play внизу справа
    =========================================== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -106,7 +106,14 @@ header {
     transition: transform 0.4s, box-shadow 0.4s;
 }
 .album-card:hover img { transform: scale(1.04); box-shadow: 0 8px 20px rgba(0,0,0,0.9); }
-.album-card .title { font-weight: 700; font-size: 16px; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.album-card .title {
+    font-weight: 700;
+    /* font-size будет управляться JS */
+    margin-bottom: 6px;
+    white-space: nowrap;   /* оставляем, JS уменьшит шрифт чтобы влезло */
+    overflow: hidden;
+    text-overflow: clip;   /* или можно оставить ellipsis как fallback */
+}
 .album-card .artist { color: #b3b3b3; font-size: 14px; font-weight: 500; margin-bottom: 4px; }
 .album-card .type { color: #b3b3b3; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; background: rgba(255,255,255,0.05); display: inline-block; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
 .album-card .date { color: #888; font-size: 12px; margin-top: 4px; font-weight: 400; }
@@ -185,7 +192,12 @@ header {
     transition: transform 0.4s, box-shadow 0.4s;
 }
 .artist-card:hover img { transform: scale(1.04); box-shadow: 0 8px 20px rgba(0,0,0,0.9); }
-.artist-card .artist-name { font-weight: 700; font-size: 16px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.artist-card .artist-name {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
 .artist-card .artist-plays { color: #b3b3b3; font-size: 13px; margin-top: 4px; }
 
 .playlists-grid {
@@ -500,4 +512,30 @@ body.lyrics-open .player { right: 350px; }
     .lyrics-panel { width: 100%; right: -100%; }
     body.lyrics-open { margin-right: 0; }
     body.lyrics-open .player { right: 0; }
+}
+/* ========== Кастомный скроллбар ========== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(123, 47, 247, 0.3);
+    border-radius: 3px;
+    transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(123, 47, 247, 0.6);
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(123, 47, 247, 0.3) rgba(255, 255, 255, 0.02);
 }

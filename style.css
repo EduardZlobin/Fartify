@@ -539,3 +539,20 @@ body.lyrics-open .player { right: 350px; }
     scrollbar-width: thin;
     scrollbar-color: rgba(123, 47, 247, 0.3) rgba(255, 255, 255, 0.02);
 }
+/* Мини-обложка первого трека на карточке плейлиста */
+.playlist-card {
+    position: relative;  /* уже должно быть */
+    overflow: hidden;    /* чтобы мини-обложка не вылезала */
+}
+.playlist-card .playlist-mini-cover {
+    position: absolute;
+    bottom: 54px;
+    right: 8px;
+    width: 36%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    border: 2px solid rgba(255,255,255,0.3);
+    z-index: 2;
+}

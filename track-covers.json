@@ -22,5 +22,21 @@
     {
         "file": "40.mp3",
         "cover": "11.jpg"
+    },
+    {
+        "file": "80.mp3",
+        "cover": "20.png"
+    },
+    {
+        "file": "81.mp3",
+        "cover": "21.png"
+    },
+    {
+        "file": "82.mp3",
+        "cover": "22.png"
+    },
+    {
+        "file": "83.mp3",
+        "cover": "23.png"
     }
 ]

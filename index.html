@@ -279,7 +279,17 @@
             <img id="image-modal-img" src="" alt="Обложка">
         </div>
     </div>
-
+<!-- SVG-фильтр для экстремально медленного и сильного жидкого эффекта -->
+<svg style="position: absolute; width: 0; height: 0;">
+    <filter id="liquidFilter" x="-50%" y="-50%" width="9900%" height="9900%">
+        <feTurbulence id="turbulence" type="fractalNoise" baseFrequency="0.003 0.005" numOctaves="3" result="noise">
+            <animate attributeName="baseFrequency"
+                     values="0.003 0.005; 0.008 0.004; 0.005 0.009; 0.003 0.005"
+                     dur="40s" repeatCount="indefinite" />
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="220" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+</svg>
     <script src="script.js"></script>
 </body>
 </html>

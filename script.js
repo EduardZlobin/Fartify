@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let favorites = [];
     let activeBgLayer = 1;
     let previousPath = BASE_PATH;
+    let initialPath = false;
 
     let texts = {};
     let trackCovers = {};
@@ -98,16 +99,107 @@ document.addEventListener('DOMContentLoaded', () => {
     const AUTO_PLAYLIST_COUNT = 5;
     const TRACKS_PER_PLAYLIST = 10;
 
+    // ---------- СОХРАНЕНИЕ СОСТОЯНИЯ ПЛЕЕРА ----------
+    const STORAGE_KEY = 'fartify_player_state';
+    let saveTimeTimeout;
+
+    function savePlayerState() {
+        if (!currentAlbum || currentTrackIndex < 0) return;
+        const state = {
+            album: currentAlbum.title ? {
+                title: currentAlbum.title,
+                artist: currentAlbum.artist,
+                cover: currentAlbum.cover,
+                tracks: currentAlbum.tracks.map(t => ({
+                    file: t.file,
+                    title: t.title,
+                    artist: t.artist || currentAlbum.artist,
+                    cover: t.cover || currentAlbum.cover,
+                    duration: t.duration,
+                    albumTitle: t.albumTitle || currentAlbum.title
+                }))
+            } : null,
+            trackIndex: currentTrackIndex,
+            currentTime: audio.currentTime,
+            volume: audio.volume,
+            shuffle: shuffle,
+            repeat: repeat,
+            isGlobalShuffle: isGlobalShuffle,
+            globalPlaylist: isGlobalShuffle ? globalPlaylist : [],
+            globalCurrentIndex: isGlobalShuffle ? globalCurrentIndex : -1
+        };
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {}
+    }
+
+    function clearPlayerState() {
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function loadPlayerState() {
+        try {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (!data) return null;
+            return JSON.parse(data);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function restorePlayerFromState() {
+        const state = loadPlayerState();
+        if (!state || !state.album || !state.album.tracks || state.trackIndex < 0) return;
+        const originalAlbum = allAlbums.find(a => a.title === state.album.title && a.artist === state.album.artist);
+        if (originalAlbum) {
+            currentAlbum = originalAlbum;
+        } else {
+            currentAlbum = {
+                artist: state.album.artist,
+                cover: state.album.cover,
+                title: state.album.title,
+                tracks: state.album.tracks
+            };
+        }
+        currentTrackIndex = state.trackIndex;
+        shuffle = state.shuffle || false;
+        repeat = state.repeat || 'none';
+        isGlobalShuffle = state.isGlobalShuffle || false;
+        globalPlaylist = state.globalPlaylist || [];
+        globalCurrentIndex = state.globalCurrentIndex !== undefined ? state.globalCurrentIndex : -1;
+
+        const track = currentAlbum.tracks[currentTrackIndex];
+        if (track) {
+            audio.src = `music/${track.file}`;
+            playerCover.src = `photo/${track.cover || currentAlbum.cover}`;
+            playerTitle.textContent = track.title || '';
+            playerArtist.textContent = track.artist || currentAlbum.artist;
+            playerFavBtn.classList.toggle('active', isFavorite({
+                file: track.file, title: track.title, artist: track.artist || currentAlbum.artist,
+                cover: track.cover || currentAlbum.cover
+            }));
+            audio.currentTime = state.currentTime || 0;
+            audio.volume = state.volume || 0.7;
+            updateVolumeUI();
+            updatePlayPauseIcon(false);
+        }
+
+        if (shuffle) shuffleBtn.classList.add('active');
+        else shuffleBtn.classList.remove('active');
+        updateRepeatIcon();
+        shuffleBtn.disabled = isGlobalShuffle;
+    }
+
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     audio.volume = 0.7;
     updateVolumeUI();
     loadFavorites();
 
-    // Обрабатываем ?path= (если был редирект с 404.html)
     (function initPath() {
         const params = new URLSearchParams(window.location.search);
         const path = params.get('path');
         if (path) {
+            initialPath = true;
             const cleanPath = path.replace(/^\//, '');
             window.history.replaceState({}, '', BASE_PATH + cleanPath);
         }
@@ -136,6 +228,10 @@ document.addEventListener('DOMContentLoaded', () => {
         generateAutoPlaylists();
         callFitAfterRender();
         handleRouting();
+
+        if (!initialPath && (getRelativePath() === '/' || getRelativePath() === BASE_PATH.replace(/\/$/, ''))) {
+            restorePlayerFromState();
+        }
     })
     .catch(err => console.error('Ошибка загрузки данных:', err));
 
@@ -170,7 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const pl = autoPlaylists.find(p => p.id === plId);
             if (pl) openAutoPlaylistModal(pl);
         } else {
-            // главная
             modal.classList.add('hidden');
             playlistModal.classList.add('hidden');
             artistPage.classList.add('hidden');
@@ -178,7 +273,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Перехват кликов по ссылкам
     document.addEventListener('click', function(e) {
         const target = e.target.closest('a');
         if (!target) return;
@@ -798,6 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTrackIndex = index;
         loadAndPlay(currentAlbum.tracks[currentTrackIndex]);
         if (!history.includes(currentTrackIndex)) history.push(currentTrackIndex);
+        savePlayerState();
     }
 
     function getAverageColor(imgSrc, callback) {
@@ -847,6 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audio.play().catch(e => console.warn('Автовоспроизведение:', e));
         updateLyricsPanel(track);
         updateMediaSession(trackWithMeta);
+        savePlayerState();
 
         const coverPath = `photo/${trackCoverFile}`;
         getAverageColor(coverPath, (bgColor, cardColor) => {
@@ -913,6 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shuffleBtn.classList.remove('active');
         shuffleBtn.disabled = true;
         playGlobalTrack();
+        savePlayerState();
     }
 
     function playGlobalTrack() {
@@ -934,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', () => {
             globalPlaylist = [];
             globalCurrentIndex = -1;
             shuffleBtn.disabled = false;
+            savePlayerState();
         }
     }
 
@@ -954,6 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!audio.src) return;
         if (audio.paused) { audio.play(); updatePlayPauseIcon(true); }
         else { audio.pause(); updatePlayPauseIcon(false); }
+        savePlayerState();
     }
 
     function nextTrack() {
@@ -1001,6 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             shuffleBtn.classList.remove('active');
         }
+        savePlayerState();
     }
 
     function updateRepeatIcon() {
@@ -1024,6 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (repeat === 'all') { repeat = 'one'; }
         else { repeat = 'none'; }
         updateRepeatIcon();
+        savePlayerState();
     }
 
     playPauseBtn.addEventListener('click', togglePlay);
@@ -1033,13 +1134,15 @@ document.addEventListener('DOMContentLoaded', () => {
     repeatBtn.addEventListener('click', toggleRepeat);
     updateRepeatIcon();
 
-    // ---------- ПРОГРЕСС И ВРЕМЯ ----------
+    // ---------- ПРОГРЕСС И ВРЕМЯ (с сохранением позиции) ----------
     audio.addEventListener('timeupdate', () => {
         if (!audio.duration) return;
         const percent = (audio.currentTime / audio.duration) * 100;
         progressBar.value = percent;
         progressFill.style.width = percent + '%';
         currentTimeEl.textContent = formatTime(audio.currentTime);
+        clearTimeout(saveTimeTimeout);
+        saveTimeTimeout = setTimeout(savePlayerState, 5000);
     });
 
     audio.addEventListener('loadedmetadata', () => {
@@ -1053,6 +1156,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const seekTime = (progressBar.value / 100) * audio.duration;
         audio.currentTime = seekTime;
         progressFill.style.width = progressBar.value + '%';
+        clearTimeout(saveTimeTimeout);
+        saveTimeTimeout = setTimeout(savePlayerState, 1000);
     });
 
     audio.addEventListener('ended', () => {
@@ -1077,7 +1182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ---------- ГРОМКОСТЬ ----------
+    // ---------- ГРОМКОСТЬ (с сохранением) ----------
     function updateVolumeUI() {
         const vol = audio.volume;
         volumeBar.value = vol * 100;
@@ -1096,6 +1201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         audio.volume = vol;
         volumeFill.style.width = volumeBar.value + '%';
         updateVolumeUI();
+        savePlayerState();
     });
 
     volumeBtn.addEventListener('click', () => {
@@ -1106,6 +1212,7 @@ document.addEventListener('DOMContentLoaded', () => {
             audio.volume = lastVolume || 0.7;
         }
         updateVolumeUI();
+        savePlayerState();
     });
 
     // ---------- ПАНЕЛЬ ТЕКСТА ----------

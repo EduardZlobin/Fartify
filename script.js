@@ -85,10 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalPlaylist = [];
     let globalCurrentIndex = -1;
     let favorites = [];
+    let activeBgLayer = 1;
 
     let texts = {};
     let trackCovers = {};
-    let autoPlaylists = []; // автоматические плейлисты
+    let autoPlaylists = [];
 
     const AUTO_PLAYLIST_COUNT = 5;
     const TRACKS_PER_PLAYLIST = 10;
@@ -118,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         buildPlaylists();
         const shuffled = [...albumsData].sort(() => Math.random() - 0.5);
         renderAlbums(shuffled);
-        generateAutoPlaylists(); // генерация автоматических плейлистов
+        generateAutoPlaylists();
         callFitAfterRender();
     })
     .catch(err => console.error('Ошибка загрузки данных:', err));
@@ -343,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ========== ПЛЕЙЛИСТ ИЗБРАННОЕ ==========
     function buildPlaylists() {
-        // Удаляем только карточку избранного, если она уже есть
         const oldFavCard = document.querySelector('.playlist-card.favorites');
         if (oldFavCard) oldFavCard.remove();
 
@@ -359,19 +359,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ========== АВТОМАТИЧЕСКИЕ ПЛЕЙЛИСТЫ ==========
-    async function getPlaylistCover(playlistId) {
+    async function getPlaylistMeta(playlistId) {
     try {
         const res = await fetch('playlist-covers.json');
-        const covers = await res.json();
-        const files = covers[playlistId];
-        if (!files || files.length === 0) return 'photo/placeholder.jpg';
-        // выбираем случайный файл из доступных
-        const randomIndex = Math.floor(Math.random() * files.length);
-        const chosen = files[randomIndex];
-        return `playlist/${playlistId}/${chosen}`;
+        if (!res.ok) throw new Error('playlist-covers.json не загрузился');
+        const data = await res.json();
+        const items = data[String(playlistId)];
+        
+        if (!items || items.length === 0) {
+            return {
+                cover: 'photo/placeholder.jpg',
+                title: `Плейлист №${playlistId}`
+            };
+        }
+        
+        const randomIndex = Math.floor(Math.random() * items.length);
+        const chosen = items[randomIndex];
+        
+        let coverFile = '';
+        let titleText = `Плейлист №${playlistId}`;
+
+        // Проверяем: прилетел объект или простая строка
+        if (typeof chosen === 'object' && chosen !== null) {
+            coverFile = chosen.cover || chosen.file || '';
+            titleText = chosen.title || titleText;
+        } else if (typeof chosen === 'string') {
+            coverFile = chosen; // если в JSON всё-таки просто строки
+        }
+
+        if (!coverFile) {
+            console.error('Не удалось найти имя файла обложки для:', chosen);
+            return {
+                cover: 'photo/placeholder.jpg',
+                title: titleText
+            };
+        }
+
+        // Убедитесь, что папка называется именно так (photo/playlist/...)
+        const coverPath = `photo/playlist/${playlistId}/${coverFile}`;
+
+        return {
+            cover: coverPath,
+            title: titleText
+        };
     } catch (e) {
-        // если файл не найден или ошибка — возвращаем заглушку
-        return 'photo/placeholder.jpg';
+        console.error('Ошибка в getPlaylistMeta:', e);
+        return {
+            cover: 'photo/placeholder.jpg',
+            title: `Плейлист №${playlistId}`
+        };
     }
 }
 
@@ -389,22 +425,56 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         autoPlaylists = [];
+
+        // Плейлисты №1–5 (без повторов внутри каждого)
         for (let i = 1; i <= AUTO_PLAYLIST_COUNT; i++) {
             const shuffled = [...allTracks].sort(() => Math.random() - 0.5);
-            const selected = shuffled.slice(0, TRACKS_PER_PLAYLIST);
-            const cover = await getPlaylistCover(i);
+            const selected = [];
+            const usedFiles = new Set();
+            for (const track of shuffled) {
+                if (!usedFiles.has(track.file)) {
+                    selected.push(track);
+                    usedFiles.add(track.file);
+                    if (selected.length >= TRACKS_PER_PLAYLIST) break;
+                }
+            }
+            const meta = await getPlaylistMeta(i);
             autoPlaylists.push({
                 id: i,
-                title: `Плейлист №${i}`,
-                cover: cover,
+                title: meta.title,
+                cover: meta.cover,
                 tracks: selected
             });
         }
+
+        // Чарт «Fartify топ-50» (без повторов)
+        const parsePlays = (str) => parseInt(str.replace(/\s/g, '')) || 0;
+        const uniqueMap = new Map();
+        allTracks.forEach(track => {
+            if (!uniqueMap.has(track.file)) {
+                uniqueMap.set(track.file, track);
+            } else {
+                const existing = uniqueMap.get(track.file);
+                if (parsePlays(track.plays) > parsePlays(existing.plays)) {
+                    uniqueMap.set(track.file, track);
+                }
+            }
+        });
+        const top50 = Array.from(uniqueMap.values())
+            .sort((a, b) => parsePlays(b.plays) - parsePlays(a.plays))
+            .slice(0, 50);
+
+        autoPlaylists.push({
+            id: 'chart',
+            title: 'Fartify топ-50',
+            cover: 'photo/chart.png',
+            tracks: top50
+        });
+
         renderAutoPlaylists();
     }
 
     function renderAutoPlaylists() {
-        // Удаляем старые автоматические карточки
         document.querySelectorAll('.playlist-card.auto-playlist').forEach(c => c.remove());
 
         autoPlaylists.forEach(pl => {
@@ -421,20 +491,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Универсальная функция показа модалки плейлиста
+    // Универсальная функция показа модалки плейлиста (теперь с showPlays)
     function showPlaylistModal(config) {
-        const { title, cover, tracks, showDate, showFavorite, showAlbum } = config;
+        const { title, cover, tracks, showDate, showFavorite, showAlbum, showPlays } = config;
         playlistModalCover.src = cover || 'photo/placeholder.jpg';
         playlistModalCover.onerror = () => { playlistModalCover.src = 'photo/placeholder.jpg'; };
         playlistModalTitle.textContent = title;
         playlistModalMeta.textContent = `${tracks.length} треков`;
 
-        // Строим заголовки таблицы динамически
         let headerHTML = '<div class="tracks-header">';
         headerHTML += '<span>#</span>';
         headerHTML += '<span></span>'; // обложка
         headerHTML += '<span>Название</span>';
         if (showAlbum) headerHTML += '<span>Альбом</span>';
+        if (showPlays) headerHTML += '<span>Прослушивания</span>';
         if (showDate) headerHTML += '<span>Дата добавления</span>';
         headerHTML += '<span>Длительность</span>';
         if (showFavorite) headerHTML += '<span></span>'; // сердечко
@@ -452,6 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
             rowHTML += `<img class="track-cover" src="photo/${track.cover}" alt="" onerror="this.style.display='none'">`;
             rowHTML += `<div class="track-title-col"><span>${track.title}</span><span class="track-artist">${track.artist}</span></div>`;
             if (showAlbum) rowHTML += `<span class="track-album">${track.albumTitle || ''}</span>`;
+            if (showPlays) rowHTML += `<span class="track-plays">${track.plays || ''}</span>`;
             if (showDate) rowHTML += `<span class="track-date-added">${track.dateAdded || ''}</span>`;
             rowHTML += `<span class="track-duration">${track.duration || ''}</span>`;
             if (showFavorite) {
@@ -490,12 +561,13 @@ document.addEventListener('DOMContentLoaded', () => {
             list.appendChild(row);
         });
 
-        // Устанавливаем колонки сетки через CSS-переменную
-        let columns;
-        if (showDate && showFavorite) columns = '30px 50px 1fr 1fr 140px 80px 40px';
-        else if (showAlbum && !showDate && !showFavorite) columns = '30px 50px 1fr 1fr 80px';
-        else if (!showAlbum && !showDate && !showFavorite) columns = '30px 50px 1fr 80px';
-        else columns = '30px 50px 1fr 1fr 80px';
+        // Определяем столбцы сетки с учётом всех флагов
+        let columns = '30px 50px 1fr ';
+        if (showAlbum) columns += '1fr ';
+        if (showPlays) columns += '90px ';
+        if (showDate) columns += '140px ';
+        columns += '80px'; // длительность
+        if (showFavorite) columns += ' 40px';
 
         tableContainer.style.setProperty('--playlist-columns', columns);
         tableContainer.querySelectorAll('.tracks-header, .track-row').forEach(el => {
@@ -526,7 +598,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cover: fav.cover,
             albumTitle: fav.albumTitle,
             duration: fav.duration,
-            dateAdded: fav.dateAdded
+            dateAdded: fav.dateAdded,
+            plays: fav.plays || ''
         }));
         showPlaylistModal({
             title: 'Избранное',
@@ -534,7 +607,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tracks: tracksWithDate,
             showDate: true,
             showFavorite: true,
-            showAlbum: true
+            showAlbum: true,
+            showPlays: false   // в избранном показываем дату, а не прослушивания (по желанию можно изменить)
         });
     }
 
@@ -545,11 +619,12 @@ document.addEventListener('DOMContentLoaded', () => {
             tracks: playlist.tracks,
             showDate: false,
             showFavorite: false,
-            showAlbum: true
+            showAlbum: true,
+            showPlays: true    // теперь отображаем прослушивания
         });
     }
 
-    // ---------- ОТРИСОВКА АЛЬБОМОВ (с кнопкой Play) ----------
+    // ---------- ОТРИСОВКА АЛЬБОМОВ ----------
     function renderAlbums(albums) {
         albumsGrid.innerHTML = '';
         albums.forEach(album => {
@@ -673,6 +748,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!history.includes(currentTrackIndex)) history.push(currentTrackIndex);
     }
 
+    function getAverageColor(imgSrc, callback) {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let r = 0, g = 0, b = 0, count = 0;
+            for (let i = 0; i < data.length; i += 4) {
+                r += data[i];
+                g += data[i + 1];
+                b += data[i + 2];
+                count++;
+            }
+            r = Math.round(r / count);
+            g = Math.round(g / count);
+            b = Math.round(b / count);
+
+            const bgColor = `rgb(${r},${g},${b})`;
+            const darkerR = Math.max(0, r - 40);
+            const darkerG = Math.max(0, g - 40);
+            const darkerB = Math.max(0, b - 40);
+            const cardColor = `rgb(${darkerR},${darkerG},${darkerB})`;
+
+            callback(bgColor, cardColor);
+        };
+        img.onerror = () => callback('#070709', '#0f0f15');
+        img.src = imgSrc;
+    }
+
     function loadAndPlay(track) {
         audio.src = `music/${track.file}`;
         const trackCoverFile = track.cover || getTrackCover(track.file, allAlbums.filter(a => a.artist === track.artist));
@@ -695,10 +803,19 @@ document.addEventListener('DOMContentLoaded', () => {
         audio.play().catch(e => console.warn('Автовоспроизведение:', e));
         updateLyricsPanel(track);
         updateMediaSession(trackWithMeta);
+
         const coverPath = `photo/${trackCoverFile}`;
-        getAverageColor(`photo/${trackCoverFile}`, (bgColor, cardColor) => {
-        document.body.style.background = `linear-gradient(135deg, ${bgColor} 0%, #070709 60%)`;
-        document.documentElement.style.setProperty('--card-gradient-color', cardColor);
+        getAverageColor(coverPath, (bgColor, cardColor) => {
+            document.documentElement.style.setProperty('--card-gradient-color', cardColor);
+
+            const newLayer = document.getElementById(`bg-layer${activeBgLayer === 1 ? 2 : 1}`);
+            const oldLayer = document.getElementById(`bg-layer${activeBgLayer}`);
+
+            newLayer.style.background = `linear-gradient(135deg, ${bgColor} 0%, #070709 60%)`;
+            newLayer.style.opacity = '1';
+            oldLayer.style.opacity = '0';
+
+            activeBgLayer = activeBgLayer === 1 ? 2 : 1;
         });
     }
 
@@ -1025,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const titles = document.querySelectorAll('.album-card .title, .artist-card .artist-name');
         titles.forEach(title => {
             const parent = title.parentElement;
-            const maxWidth = parent.clientWidth - 32; // padding
+            const maxWidth = parent.clientWidth - 32;
             let fontSize = 16;
             title.style.fontSize = fontSize + 'px';
 
@@ -1172,39 +1289,4 @@ document.addEventListener('DOMContentLoaded', () => {
         const index = album.tracks.findIndex(t => t.file === track.file);
         if (index !== -1) playTrackByIndex(index);
     };
-    function getAverageColor(imgSrc, callback) {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        let r = 0, g = 0, b = 0, count = 0;
-        for (let i = 0; i < data.length; i += 4) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-            count++;
-        }
-        r = Math.round(r / count);
-        g = Math.round(g / count);
-        b = Math.round(b / count);
-
-        // Основной цвет для фона body
-        const bgColor = `rgb(${r},${g},${b})`;
-
-        // Темнее для карточек: уменьшаем значения на 40 (но не ниже 0)
-        const darkerR = Math.max(0, r - 40);
-        const darkerG = Math.max(0, g - 40);
-        const darkerB = Math.max(0, b - 40);
-        const cardColor = `rgb(${darkerR},${darkerG},${darkerB})`;
-
-        callback(bgColor, cardColor);
-    };
-    img.onerror = () => callback('#070709', '#0f0f15');
-    img.src = imgSrc;
-}
 });

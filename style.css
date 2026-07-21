@@ -556,17 +556,11 @@ body.lyrics-open .player { right: 350px; }
     border: 2px solid rgba(255,255,255,0.3);
     z-index: 2;
 }
-:root {
-    --card-gradient-color: #0f0f15; /* значение по умолчанию */
+body {
+    background: #070709;
+    transition: background 0.8s ease;
 }
 
-.album-card,
-.artist-card,
-.playlist-card {
-    background: linear-gradient(
-        135deg,
-        var(--card-gradient-color) 0%,
-        rgba(7, 7, 9, 0.9) 100%
-    );
-    transition: background 0.8s ease; /* плавность */
+:root {
+    --card-gradient-color: #0f0f15;
 }

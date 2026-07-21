@@ -100,22 +100,24 @@ document.addEventListener('DOMContentLoaded', () => {
     updateVolumeUI();
     loadFavorites();
 
-    // Обработка первичного ?path= (для GitHub Pages)
+    // Автоматическое определение базового пути репозитория (например, /Fartify/)
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const repoName = (window.location.hostname.includes('github.io') && pathSegments.length > 0) ? '/' + pathSegments[0] : '';
+
+    // Обработка первичного ?path= (для GitHub Pages и 404.html)
     (function initPath() {
         const params = new URLSearchParams(window.location.search);
         const path = params.get('path');
         if (path) {
-            // Восстанавливаем чистый путь (например, /Artist/Имя) в адресной строке
-            const newPath = '/' + path.replace(/^\/+/, '');
-            window.history.replaceState({}, '', newPath);
+            const cleanPath = repoName + '/' + path.replace(/^\/+/, '');
+            window.history.replaceState({}, '', cleanPath);
         }
     })();
-
     Promise.all([
-        fetch('data.json').then(r => r.json()),
-        fetch('artists.json').then(r => r.json()).catch(() => []),
-        fetch('text.json').then(r => r.json()).catch(() => []),
-        fetch('track-covers.json').then(r => r.json()).catch(() => [])
+        fetch(repoName + '/data.json').then(r => r.json()),
+        fetch(repoName + '/artists.json').then(r => r.json()).catch(() => []),
+        fetch(repoName + '/text.json').then(r => r.json()).catch(() => []),
+        fetch(repoName + '/track-covers.json').then(r => r.json()).catch(() => [])
     ])
     .then(([albumsData, artistsData, textData, trackCoverData]) => {
         allAlbums = albumsData;

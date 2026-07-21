@@ -564,3 +564,9 @@ body {
 :root {
     --card-gradient-color: #0f0f15;
 }
+
+a.artist-card, a.album-card, a.playlist-card {
+    text-decoration: none;
+    color: inherit;
+    display: block; /* важно, если карточка — это div, а теперь ссылка */
+}

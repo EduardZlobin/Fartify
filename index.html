@@ -8,8 +8,9 @@
 </head>
 <body>
   <!-- Фоновые слои для плавного градиента -->
-<div id="bg-layer1" class="bg-layer"></div>
-<div id="bg-layer2" class="bg-layer" style="opacity: 0;"></div>
+  <div id="bg-layer1" class="bg-layer"></div>
+  <div id="bg-layer2" class="bg-layer" style="opacity: 0;"></div>
+
   <header>
     <h1></h1>
   </header>
@@ -27,19 +28,19 @@
         </button>
       </div>
 
-      <!-- Плейлисты (Избранное) -->
+      <!-- Плейлисты -->
       <section id="playlists-section" class="section">
         <h2 class="section-title">Плейлисты</h2>
         <div id="playlists-grid" class="playlists-grid"></div>
       </section>
 
-      <!-- Секция "Исполнители" -->
+      <!-- Исполнители -->
       <section id="artists-section" class="section">
         <h2 class="section-title">Исполнители</h2>
         <div id="artists-grid" class="artists-grid"></div>
       </section>
 
-      <!-- Секция "Для вас" -->
+      <!-- Для вас -->
       <section id="for-you-section" class="section">
         <h2 class="section-title">Для вас</h2>
         <div id="albums-grid" class="albums-grid"></div>
@@ -83,7 +84,7 @@
       </div>
     </div>
 
-    <!-- Плеер (всегда видим) -->
+    <!-- Плеер -->
     <div id="player" class="player">
       <div class="player-left">
         <img id="player-cover" src="" alt="Обложка" class="player-cover-img">
@@ -172,15 +173,16 @@
     </div>
   </main>
 
-  <!-- Панель текста песни (справа) -->
+  <!-- Панель текста песни -->
   <div id="lyrics-panel" class="lyrics-panel">
     <button id="lyrics-close-btn" class="lyrics-close-btn">&times;</button>
     <div class="lyrics-background"></div>
     <div class="lyrics-content">
-        <img id="lyrics-cover" src="" alt="Обложка" class="lyrics-cover">
-        <pre id="lyrics-text" class="lyrics-text">Увы, Гладун забыл текст этой песни</pre>
+      <img id="lyrics-cover" src="" alt="Обложка" class="lyrics-cover">
+      <pre id="lyrics-text" class="lyrics-text">Увы, Гладун забыл текст этой песни</pre>
     </div>
-</div>
+  </div>
+
   <!-- Модальное окно альбома -->
   <div id="album-modal" class="modal hidden">
     <div class="modal-content">
@@ -255,17 +257,18 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
-<!-- SVG-фильтр для очень сильного и медленного жидкого эффекта -->
-<svg style="position: absolute; width: 0; height: 0;">
-    <filter id="liquidFilter" x="-50%" y="-50%" width="99000%" height="99000%">
-        <feTurbulence id="turbulence" type="fractalNoise" baseFrequency="0.005 0.008" numOctaves="4" result="noise">
-            <animate attributeName="baseFrequency"
-                     values="0.005 0.008; 0.01 0.005; 0.008 0.012; 0.005 0.008"
-                     dur="100s" repeatCount="indefinite" />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="200" xChannelSelector="R" yChannelSelector="G" />
+  <!-- SVG-фильтр для жидкого эффекта -->
+  <svg style="position: absolute; width: 0; height: 0;">
+    <filter id="liquidFilter" x="-50%" y="-50%" width="2000%" height="2000%">
+      <feTurbulence id="turbulence" type="fractalNoise" baseFrequency="0.003 0.005" numOctaves="3" result="noise">
+        <animate attributeName="baseFrequency"
+                 values="0.003 0.005; 0.008 0.004; 0.005 0.009; 0.003 0.005"
+                 dur="300s" repeatCount="indefinite" />
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="220" xChannelSelector="R" yChannelSelector="G" />
     </filter>
-</svg>
+  </svg>
+
+  <script src="script.js"></script>
 </body>
 </html>

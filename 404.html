@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Перенаправление…</title>
+    <script>
+        // Получаем путь, который запросил пользователь
+        var path = window.location.pathname.replace(/\/$/, '') || '/';
+        // Убираем начальный слеш и кодируем
+        var cleanPath = path.substring(1); // убираем первый '/'
+        // Перенаправляем на главную с параметром path
+        window.location.href = '/' + '?path=' + encodeURIComponent(cleanPath);
+    </script>
+</head>
+<body>
+    Если вы не были перенаправлены автоматически, перейдите на <a href="/">главную страницу</a>.
+</body>
+</html>

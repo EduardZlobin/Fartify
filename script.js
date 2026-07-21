@@ -72,6 +72,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageModalImg = document.getElementById('image-modal-img');
     const closeImageModal = imageModal ? imageModal.querySelector('.close') : null;
 
+    // ---------- РОУТЕР ----------
+function handleRouting() {
+    const params = new URLSearchParams(window.location.search);
+    const path = params.get('path');
+    if (!path) return;
+
+    // Убираем начальный и конечный слеши
+    const segments = path.replace(/^\/|\/$/g, '').split('/');
+
+    if (segments[0] === 'Artist' && segments[1]) {
+        const artistName = decodeURIComponent(segments[1]);
+        stopGlobalShuffle();
+        showArtistPage(artistName);
+        // Очищаем ?path= из строки браузера, заменяя на красивый URL
+        window.history.replaceState({}, '', '/' + path);
+    }
+    else if (segments[0] === 'release' && segments[1]) {
+        const releaseTitle = decodeURIComponent(segments[1]);
+        const album = allAlbums.find(a => a.title === releaseTitle);
+        if (album) {
+            const type = getAlbumType(album.tracks.length);
+            stopGlobalShuffle();
+            openModal(album, type);
+        }
+        window.history.replaceState({}, '', '/' + path);
+    }
+    else if (path === 'favorites') {
+        stopGlobalShuffle();
+        openPlaylistModal();
+        window.history.replaceState({}, '', '/favorites');
+    }
+    else if (path === 'chart') {
+        // Найти чарт среди autoPlaylists (после генерации)
+        const chartPlaylist = autoPlaylists.find(p => p.id === 'chart');
+        if (chartPlaylist) {
+            openAutoPlaylistModal(chartPlaylist);
+        }
+        window.history.replaceState({}, '', '/chart');
+    }
+    // Можно добавить обработку playlist/1 и т.д.
+    else {
+        // Если ничего не подошло – просто остаёмся на главной
+        window.history.replaceState({}, '', '/');
+    }
+}
+
+// Перехват всех кликов по ссылкам, которые начинаются с нашего домена
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('a');
+    if (!target) return;
+    const href = target.getAttribute('href');
+    if (!href) return;
+    // Только внутренние ссылки (начинаются с / или совпадает домен)
+    const url = new URL(href, window.location.origin);
+    if (url.origin !== window.location.origin) return;
+
+    e.preventDefault();
+    const newPath = url.pathname.replace(/\/$/, '') || '/';
+    // Если это тот же путь, ничего не делаем
+    if (newPath === window.location.pathname) return;
+    // Обновляем URL через pushState
+    window.history.pushState({}, '', newPath);
+    // Обрабатываем новый путь
+    handleRouting();
+});
+
+// Обработка кнопок "назад"/"вперёд"
+window.addEventListener('popstate', function() {
+    handleRouting();
+});
+
     // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
     let allAlbums = [];
     let artistsMap = {};
@@ -121,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAlbums(shuffled);
         generateAutoPlaylists();
         callFitAfterRender();
+        handleRouting();
     })
     .catch(err => console.error('Ошибка загрузки данных:', err));
 

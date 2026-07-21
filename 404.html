@@ -4,18 +4,9 @@
     <meta charset="UTF-8">
     <title>Перенаправление…</title>
     <script>
-        // Получаем текущий путь из адресной строки
-        var pathname = window.location.pathname;
-        
-        // Автоматически определяем имя вашего репозитория (в вашем случае это Fartify)
-        var pathSegments = pathname.split('/').filter(Boolean);
-        var repoName = pathSegments.length > 0 ? pathSegments[0] : '';
-        
-        // Убираем имя репозитория из пути, оставляя только внутренний роут (например, /Artist/Name)
-        var routePath = pathname.replace('/' + repoName, '');
-        
-        // Перенаправляем на главную страницу репозитория, передавая путь через параметр ?path=
-        window.location.replace('/' + repoName + '/?path=' + encodeURIComponent(routePath));
+        var repo = '/Fartify';
+        var path = window.location.pathname.replace(repo, '') || '/';
+        window.location.href = repo + '/?path=' + encodeURIComponent(path);
     </script>
 </head>
 <body>

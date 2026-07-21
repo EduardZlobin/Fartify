@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ---------- БАЗОВЫЙ ПУТЬ (автоматически) ----------
+    const BASE_PATH = window.location.pathname.indexOf('/Fartify/') === 0 ? '/Fartify/' : '/';
+
     // ---------- DOM-ЭЛЕМЕНТЫ ----------
     const mainContent = document.getElementById('main-content');
     const artistPage = document.getElementById('artist-page');
@@ -86,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let globalCurrentIndex = -1;
     let favorites = [];
     let activeBgLayer = 1;
-    let previousPath = '/';
+    let previousPath = BASE_PATH;
 
     let texts = {};
     let trackCovers = {};
@@ -100,24 +103,21 @@ document.addEventListener('DOMContentLoaded', () => {
     updateVolumeUI();
     loadFavorites();
 
-    // Автоматическое определение базового пути репозитория (например, /Fartify/)
-    const pathSegments = window.location.pathname.split('/').filter(Boolean);
-    const repoName = (window.location.hostname.includes('github.io') && pathSegments.length > 0) ? '/' + pathSegments[0] : '';
-
-    // Обработка первичного ?path= (для GitHub Pages и 404.html)
+    // Обрабатываем ?path= (если был редирект с 404.html)
     (function initPath() {
         const params = new URLSearchParams(window.location.search);
         const path = params.get('path');
         if (path) {
-            const cleanPath = repoName + '/' + path.replace(/^\/+/, '');
-            window.history.replaceState({}, '', cleanPath);
+            const cleanPath = path.replace(/^\//, '');
+            window.history.replaceState({}, '', BASE_PATH + cleanPath);
         }
     })();
+
     Promise.all([
-        fetch(repoName + '/data.json').then(r => r.json()),
-        fetch(repoName + '/artists.json').then(r => r.json()).catch(() => []),
-        fetch(repoName + '/text.json').then(r => r.json()).catch(() => []),
-        fetch(repoName + '/track-covers.json').then(r => r.json()).catch(() => [])
+        fetch('data.json').then(r => r.json()),
+        fetch('artists.json').then(r => r.json()).catch(() => []),
+        fetch('text.json').then(r => r.json()).catch(() => []),
+        fetch('track-covers.json').then(r => r.json()).catch(() => [])
     ])
     .then(([albumsData, artistsData, textData, trackCoverData]) => {
         allAlbums = albumsData;
@@ -140,10 +140,13 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(err => console.error('Ошибка загрузки данных:', err));
 
     // ---------- РОУТЕР ----------
+    function getRelativePath() {
+        return window.location.pathname.replace(BASE_PATH, '/').replace(/\/$/, '') || '/';
+    }
+
     function handleRouting() {
-        const path = window.location.pathname.replace(/\/$/, '') || '/';
-        const cleanPath = path.substring(1);
-        const segments = cleanPath.split('/');
+        const path = getRelativePath();
+        const segments = path.replace(/^\//, '').split('/');
 
         if (segments[0] === 'Artist' && segments[1]) {
             const artistName = decodeURIComponent(segments[1]);
@@ -167,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pl = autoPlaylists.find(p => p.id === plId);
             if (pl) openAutoPlaylistModal(pl);
         } else {
+            // главная
             modal.classList.add('hidden');
             playlistModal.classList.add('hidden');
             artistPage.classList.add('hidden');
@@ -174,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Перехват кликов по внутренним ссылкам
+    // Перехват кликов по ссылкам
     document.addEventListener('click', function(e) {
         const target = e.target.closest('a');
         if (!target) return;
@@ -190,17 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleRouting();
     });
 
-    // Кнопки "назад"/"вперёд"
     window.addEventListener('popstate', handleRouting);
-
-    // Восстановление предыдущего URL при закрытии
-    function restorePreviousUrl() {
-        if (previousPath === window.location.pathname) {
-            window.history.pushState({}, '', '/');
-        } else {
-            window.history.pushState({}, '', previousPath);
-        }
-    }
 
     // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
     function getLatestAlbumCover(artistName) {
@@ -407,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         artists.forEach(artist => {
             const card = document.createElement('a');
             card.className = 'artist-card';
-            card.href = '/Artist/' + encodeURIComponent(artist.name);
+            card.href = BASE_PATH + 'Artist/' + encodeURIComponent(artist.name);
             card.innerHTML = `
                 <img src="photo/${artist.cover}" alt="${artist.name}" onerror="this.src='photo/placeholder.jpg'">
                 <div class="artist-name">${artist.name}</div>
@@ -424,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const playlistCard = document.createElement('a');
         playlistCard.className = 'playlist-card favorites';
-        playlistCard.href = '/favorites';
+        playlistCard.href = BASE_PATH + 'favorites';
         playlistCard.innerHTML = `
             <img src="photo/favorites.png" alt="Избранное" onerror="this.src='photo/placeholder.jpg'">
             <div class="playlist-name">Избранное</div>
@@ -528,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
         autoPlaylists.forEach(pl => {
             const card = document.createElement('a');
             card.className = 'playlist-card auto-playlist';
-            card.href = (pl.id === 'chart') ? '/chart' : '/playlist/' + pl.id;
+            card.href = (pl.id === 'chart') ? BASE_PATH + 'chart' : BASE_PATH + 'playlist/' + pl.id;
             card.innerHTML = `
                 <img src="${pl.cover}" alt="${pl.title}" onerror="this.src='photo/placeholder.jpg'">
                 <div class="playlist-name">${pl.title}</div>
@@ -542,18 +536,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Универсальная модалка плейлиста
     function showPlaylistModal(config) {
         const { title, cover, tracks, showDate, showFavorite, showAlbum, showPlays } = config;
-        const currentPath = window.location.pathname;
-        let plPath = '/';
-        if (title === 'Избранное') plPath = '/favorites';
-        else if (title === 'Fartify топ-50') plPath = '/chart';
+        previousPath = window.location.pathname;
+        let plPath = BASE_PATH;
+        if (title === 'Избранное') plPath = BASE_PATH + 'favorites';
+        else if (title === 'Fartify топ-50') plPath = BASE_PATH + 'chart';
         else {
             const pl = autoPlaylists.find(p => p.title === title);
-            if (pl && typeof pl.id === 'number') plPath = '/playlist/' + pl.id;
-        }
-        if (currentPath === plPath) {
-            previousPath = '/';
-        } else {
-            previousPath = currentPath;
+            if (pl && typeof pl.id === 'number') plPath = BASE_PATH + 'playlist/' + pl.id;
         }
         window.history.pushState({}, '', plPath);
 
@@ -618,7 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (idx !== -1) playTrackByIndex(idx);
                 }
                 playlistModal.classList.add('hidden');
-                restorePreviousUrl();
+                window.history.pushState({}, '', previousPath);
             });
 
             list.appendChild(row);
@@ -647,7 +636,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             playTrackByIndex(0);
             playlistModal.classList.add('hidden');
-            restorePreviousUrl();
         };
 
         playlistModal.classList.remove('hidden');
@@ -671,6 +659,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function restorePreviousUrl() {
+        window.history.pushState({}, '', previousPath);
+    }
+
     function closePlaylistAndRestoreUrl() {
         playlistModal.classList.add('hidden');
         restorePreviousUrl();
@@ -688,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const type = getAlbumType(album.tracks.length);
             const card = document.createElement('a');
             card.className = 'album-card';
-            card.href = '/release/' + encodeURIComponent(album.title);
+            card.href = BASE_PATH + 'release/' + encodeURIComponent(album.title);
             card.innerHTML = `
                 <img src="photo/${album.cover}" alt="${album.title}" onerror="this.src='photo/placeholder.jpg'">
                 <div class="title">${album.title}</div>
@@ -713,13 +705,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- МОДАЛЬНОЕ ОКНО АЛЬБОМА ----------
     function openModal(album, type) {
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/release/')) {
-            previousPath = '/';
-        } else {
-            previousPath = currentPath;
-        }
-        window.history.pushState({}, '', '/release/' + encodeURIComponent(album.title));
+        previousPath = window.location.pathname;
+        window.history.pushState({}, '', BASE_PATH + 'release/' + encodeURIComponent(album.title));
 
         modalCover.src = `photo/${album.cover}`;
         modalCover.onerror = () => { modalCover.src = 'photo/placeholder.jpg'; };
@@ -1189,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ========== СТРАНИЦА АРТИСТА ==========
     function showArtistPage(artistName) {
-        window.history.pushState({}, '', '/Artist/' + encodeURIComponent(artistName));
+        window.history.pushState({}, '', BASE_PATH + 'Artist/' + encodeURIComponent(artistName));
 
         const artistAlbums = allAlbums.filter(album => album.artist === artistName);
         if (artistAlbums.length === 0) return;
@@ -1262,7 +1249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const type = getAlbumType(album.tracks.length);
             const card = document.createElement('a');
             card.className = 'album-card';
-            card.href = '/release/' + encodeURIComponent(album.title);
+            card.href = BASE_PATH + 'release/' + encodeURIComponent(album.title);
             card.innerHTML = `
                 <img src="photo/${album.cover}" alt="${album.title}" onerror="this.src='photo/placeholder.jpg'">
                 <div class="title">${album.title}</div>
@@ -1309,7 +1296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     backBtn.addEventListener('click', () => {
-        window.history.pushState({}, '', '/');
+        window.history.pushState({}, '', BASE_PATH);
         artistPage.classList.add('hidden');
         mainContent.classList.remove('hidden');
     });

@@ -105,7 +105,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         const path = params.get('path');
         if (path) {
-            const newPath = '/' + path;
+            // Восстанавливаем чистый путь (например, /Artist/Имя) в адресной строке
+            const newPath = '/' + path.replace(/^\/+/, '');
             window.history.replaceState({}, '', newPath);
         }
     })();

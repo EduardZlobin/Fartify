@@ -1,5 +1,5 @@
 /* ===========================================
-   MySpoty — Тёмная тема (#070709) + кнопка Play внизу справа
+   хеххе пан зеленский привет
    =========================================== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -555,4 +555,18 @@ body.lyrics-open .player { right: 350px; }
     box-shadow: 0 2px 8px rgba(0,0,0,0.6);
     border: 2px solid rgba(255,255,255,0.3);
     z-index: 2;
+}
+:root {
+    --card-gradient-color: #0f0f15; /* значение по умолчанию */
+}
+
+.album-card,
+.artist-card,
+.playlist-card {
+    background: linear-gradient(
+        135deg,
+        var(--card-gradient-color) 0%,
+        rgba(7, 7, 9, 0.9) 100%
+    );
+    transition: background 0.8s ease; /* плавность */
 }

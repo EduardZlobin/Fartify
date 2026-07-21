@@ -695,6 +695,11 @@ document.addEventListener('DOMContentLoaded', () => {
         audio.play().catch(e => console.warn('Автовоспроизведение:', e));
         updateLyricsPanel(track);
         updateMediaSession(trackWithMeta);
+        const coverPath = `photo/${trackCoverFile}`;
+        getAverageColor(`photo/${trackCoverFile}`, (bgColor, cardColor) => {
+        document.body.style.background = `linear-gradient(135deg, ${bgColor} 0%, #070709 60%)`;
+        document.documentElement.style.setProperty('--card-gradient-color', cardColor);
+        });
     }
 
     function updateMediaSession(track) {
@@ -1167,4 +1172,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const index = album.tracks.findIndex(t => t.file === track.file);
         if (index !== -1) playTrackByIndex(index);
     };
+    function getAverageColor(imgSrc, callback) {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+        }
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+
+        // Основной цвет для фона body
+        const bgColor = `rgb(${r},${g},${b})`;
+
+        // Темнее для карточек: уменьшаем значения на 40 (но не ниже 0)
+        const darkerR = Math.max(0, r - 40);
+        const darkerG = Math.max(0, g - 40);
+        const darkerB = Math.max(0, b - 40);
+        const cardColor = `rgb(${darkerR},${darkerG},${darkerB})`;
+
+        callback(bgColor, cardColor);
+    };
+    img.onerror = () => callback('#070709', '#0f0f15');
+    img.src = imgSrc;
+}
 });

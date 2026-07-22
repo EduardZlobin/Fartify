@@ -570,3 +570,43 @@ a.artist-card, a.album-card, a.playlist-card {
     color: inherit;
     display: block; /* важно, если карточка — это div, а теперь ссылка */
 }
+/* ---------- Горизонтальный скролл для некоторых секций ---------- */
+#playlists-grid,
+#artists-grid,
+#recent-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 24px;
+    padding: 0 20px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    /* Стилизация скроллбара (уже есть общая для ::-webkit-scrollbar, можно оставить) */
+}
+
+/* Задаём фиксированную ширину карточек внутри горизонтальных секций, 
+   чтобы они не сжимались */
+#playlists-grid > .playlist-card,
+#artists-grid > .artist-card,
+#recent-grid > .album-card {
+    flex: 0 0 auto;
+    width: 200px; /* одинаковая ширина для всех карточек */
+}
+
+/* Для мобильных можно уменьшить */
+@media (max-width: 700px) {
+    #playlists-grid > .playlist-card,
+    #artists-grid > .artist-card,
+    #recent-grid > .album-card {
+        width: 150px;
+    }
+}
+
+/* Обычная сетка для "Для вас" – оставляем как есть */
+#albums-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+    padding: 0 20px;
+}

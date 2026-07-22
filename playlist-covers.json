@@ -1,22 +1,27 @@
 {
   "1": [
-    { "cover": "playlist_1.png", "title": "Энергия утра" },
+    { "cover": "playlist_1.png", "title": "Плейлист на ваш вкус" },
+    { "cover": "playlist_3.png", "title": "Плейлист с душой" },
     { "cover": "playlist_2.png", "title": "Подходящая сборка треков" }
   ],
   "2": [
     { "cover": "playlist_1.png", "title": "От Сергея Гладуна" },
+    { "cover": "playlist_3.png", "title": "Собрано Забродой" },
     { "cover": "playlist_2.png", "title": "От Димы Гладуна" }
   ],
   "3": [
     { "cover": "playlist_1.png", "title": "Собрано с помощью ИИ" },
+    { "cover": "playlist_3.png", "title": "Собрано Цыганами в подвале" },
     { "cover": "playlist_2.png", "title": "Собрано с помощью Индуса" }
   ],
   "4": [
     { "cover": "playlist_1.png", "title": "Собрано на Рабочей" },
+    { "cover": "playlist_3.png", "title": "От Священника Решетникова" },
     { "cover": "playlist_2.png", "title": "От Эдика Злобина" }
   ],
   "5": [
     { "cover": "playlist_1.png", "title": "Собрано на похуй" },
+    { "cover": "playlist_3.png", "title": "Собрано Рулемом" },
     { "cover": "playlist_2.png", "title": "Собрано на отъебись" }
   ]
 }

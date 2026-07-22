@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ---------- БАЗОВЫЙ ПУТЬ (автоматически) ----------
+    // ---------- БАЗОВЫЙ ПУТЬ ----------
     const BASE_PATH = window.location.pathname.indexOf('/Fartify/') === 0 ? '/Fartify/' : '/';
 
     // ---------- DOM-ЭЛЕМЕНТЫ ----------
@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const playlistsGrid = document.getElementById('playlists-grid');
     const artistsGrid = document.getElementById('artists-grid');
     const albumsGrid = document.getElementById('albums-grid');
+    const recentGrid = document.getElementById('recent-grid');
+    const recentSection = document.getElementById('recent-section');
 
     const recommendBanner = document.getElementById('recommendation-banner');
     const recommendPlayBtn = document.getElementById('recommend-play-btn');
@@ -101,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- СОХРАНЕНИЕ СОСТОЯНИЯ ПЛЕЕРА ----------
     const STORAGE_KEY = 'fartify_player_state';
+    const RECENT_KEY = 'fartify_recent';
     let saveTimeTimeout;
 
     function savePlayerState() {
@@ -190,6 +193,94 @@ document.addEventListener('DOMContentLoaded', () => {
         shuffleBtn.disabled = isGlobalShuffle;
     }
 
+    // ---------- НЕДАВНО ПРОСЛУШАННОЕ ----------
+    function addToRecent(album) {
+        if (!album || !album.title || !album.artist) return;
+        // Не сохраняем фиктивные альбомы (например, "Все треки ...", "Избранное")
+        if (album.title.startsWith('Все треки ') || album.title === 'Избранное' || album.title === 'Fartify топ-50') return;
+        if (!allAlbums.some(a => a.title === album.title && a.artist === album.artist)) return; // только реальные релизы
+
+        try {
+            let recent = JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
+            // Удаляем старую запись с таким же названием и артистом
+            recent = recent.filter(r => !(r.title === album.title && r.artist === album.artist));
+            recent.push({
+                title: album.title,
+                artist: album.artist,
+                cover: album.cover,
+                date: album.date || '',
+                timestamp: Date.now()
+            });
+            // Храним не более 50 записей
+            if (recent.length > 50) recent = recent.slice(recent.length - 50);
+            localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+            renderRecent();
+        } catch (e) {}
+    }
+
+    function loadRecent() {
+        try {
+            let recent = JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
+            // Сортируем по дате (сначала новые)
+            recent.sort((a, b) => b.timestamp - a.timestamp);
+            // Убираем дубликаты по названию и артисту (оставляем первый, т.е. самый свежий)
+            const seen = new Set();
+            const unique = [];
+            for (const item of recent) {
+                const key = `${item.artist}||${item.title}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    unique.push(item);
+                }
+            }
+            return unique.slice(0, 16);
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function renderRecent() {
+        const recent = loadRecent();
+        if (!recentGrid || !recentSection) return;
+        if (recent.length === 0) {
+            recentSection.style.display = 'none';
+            return;
+        }
+        recentSection.style.display = '';
+        recentGrid.innerHTML = '';
+        recent.forEach(item => {
+            const card = document.createElement('a');
+            card.className = 'album-card';
+            card.href = BASE_PATH + 'release/' + encodeURIComponent(item.title);
+            card.innerHTML = `
+                <img src="photo/${item.cover}" alt="${item.title}" onerror="this.src='photo/placeholder.jpg'">
+                <div class="title">${item.title}</div>
+                <div class="artist">${item.artist}</div>
+                <div class="date">${item.date || ''}</div>
+                <button class="album-play-btn" title="Играть">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 21,12 5,21"/>
+                    </svg>
+                </button>
+            `;
+            // Обработчик клика по карточке – открыть модалку (обычное поведение ссылки)
+            // Для кнопки Play запускаем альбом
+            const playBtn = card.querySelector('.album-play-btn');
+            playBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const album = allAlbums.find(a => a.title === item.title && a.artist === item.artist);
+                if (album) {
+                    stopGlobalShuffle();
+                    currentAlbum = album;
+                    playTrackByIndex(0);
+                }
+            });
+            recentGrid.appendChild(card);
+        });
+        callFitAfterRender();
+    }
+
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     audio.volume = 0.7;
     updateVolumeUI();
@@ -226,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const shuffled = [...albumsData].sort(() => Math.random() - 0.5);
         renderAlbums(shuffled);
         generateAutoPlaylists();
+        renderRecent(); // отображаем недавние после загрузки всех альбомов
         callFitAfterRender();
         handleRouting();
 
@@ -270,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playlistModal.classList.add('hidden');
             artistPage.classList.add('hidden');
             mainContent.classList.remove('hidden');
+            renderRecent(); // обновляем на случай, если история изменилась
         }
     }
 
@@ -874,6 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stopGlobalShuffle();
         currentAlbum = album;
         playTrackByIndex(index);
+        addToRecent(album); // записываем в недавние
     }
 
     function closeAlbumAndRestoreUrl() {
@@ -893,6 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAndPlay(currentAlbum.tracks[currentTrackIndex]);
         if (!history.includes(currentTrackIndex)) history.push(currentTrackIndex);
         savePlayerState();
+        // addToRecent вызывается в момент запуска альбома (playAlbumFromModal) или при клике на кнопку Play
     }
 
     function getAverageColor(imgSrc, callback) {

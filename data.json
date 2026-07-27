@@ -185,7 +185,7 @@
                 "title": "ТЫЦН-ДЫЦН",
                 "file": "12.m4a",
                 "duration": "0:30",
-                "plays": "32 311"
+                "plays": "52 311"
             }
         ]
     },
@@ -623,6 +623,123 @@
         ]
     },
     {
+        "title": "ГЛАДУНЬКО",
+        "artist": "RadioGladoon",
+        "cover": "17.png",
+        "date": "2026-07-20",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+                        {
+                "title": "ГЛАДУНЬКО",
+                "file": "85.mp3",
+                "duration": "1:48",
+                "plays": "78 513"
+            }
+        ]
+    },
+    {
+        "title": "Инвалиды с детства 2",
+        "artist": "RadioGladoon",
+        "cover": "16.png",
+        "date": "2026-07-24",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Это второй!",
+                "file": "90.mp3",
+                "duration": "2:13",
+                "plays": "52 812"
+            },
+            {
+                "title": "Гармата Гладун",
+                "file": "87.mp3",
+                "duration": "1:37",
+                "plays": "87 934"
+            },
+            {
+                "title": "Гомер выпустил Баратов (Эдику пиздец)",
+                "file": "91.mp3",
+                "duration": "2:39",
+                "plays": "76 183"
+            },
+            {
+                "title": "Вахо злий на мене!",
+                "file": "86.mp3",
+                "duration": "2:25",
+                "plays": "54 420"
+            },
+            {
+                "title": "Турбо срака",
+                "file": "88.mp3",
+                "duration": "2:20",
+                "plays": "66 635"
+            },
+            {
+                "title": "ГЛАДУНЬКО",
+                "file": "85.mp3",
+                "duration": "1:48",
+                "plays": "78 513"
+            },
+            {
+                "title": "Любовный треугольник",
+                "file": "92.mp3",
+                "duration": "3:09",
+                "plays": "77 394"
+            },
+            {
+                "title": "Решетников на службе",
+                "file": "89.mp3",
+                "duration": "3:22",
+                "plays": "71 113"
+            },
+            {
+                "title": "SIX SEVEN 2",
+                "file": "79.mp3",
+                "duration": "1:33",
+                "plays": "71 653"
+            },
+            {
+                "title": "Патрик Бейтман из Атырки",
+                "file": "93.mp3",
+                "duration": "2:53",
+                "plays": "68 280"
+            },
+            {
+                "title": "НАТО",
+                "file": "95.mp3",
+                "duration": "2:48",
+                "plays": "74 392"
+            },
+            {
+                "title": "Кто не скачет",
+                "file": "94.mp3",
+                "duration": "3:14",
+                "plays": "79 323"
+            },
+            {
+                "title": "Рабоча минус (bonus track)",
+                "file": "96.mp3",
+                "duration": "3:38",
+                "plays": "81 243"
+            }
+        ]
+    },
+    {
+        "title": "SIX SEVEN 2",
+        "artist": "RadioGladoon",
+        "cover": "18.png",
+        "date": "2026-07-16",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "SIX SEVEN 2",
+                "file": "79.mp3",
+                "duration": "1:33",
+                "plays": "71 653"
+            }
+        ]
+    },
+    {
         "title": "Неразлучимые",
         "artist": "Вонючий ловелас",
         "cover": "19.png",
@@ -639,40 +756,25 @@
                 "title": "Шляпа дырявая",
                 "file": "81.mp3",
                 "duration": "3:02",
-                "plays": "72 043"
+                "plays": "82 043"
             },
             {
                 "title": "Тень под полями шляпы (приквел)",
                 "file": "82.mp3",
                 "duration": "4:39",
-                "plays": "70 543"
+                "plays": "77 543"
             },
             {
                 "title": "Рваная цена (возмездие)",
                 "file": "83.mp3",
                 "duration": "4:01",
-                "plays": "65 430"
+                "plays": "79 430"
             },
             {
                 "title": "Неразлучимые (Туз и Шляпа)",
                 "file": "84.mp3",
                 "duration": "4:07",
-                "plays": "73 606"
-            }
-        ]
-    },
-    {
-        "title": "SIX SEVEN 2",
-        "artist": "RadioGladoon",
-        "cover": "18.png",
-        "date": "2026-07-16",
-        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
-        "tracks": [
-            {
-                "title": "SIX SEVEN 2",
-                "file": "79.mp3",
-                "duration": "1:33",
-                "plays": "71 653"
+                "plays": "78 606"
             }
         ]
     }

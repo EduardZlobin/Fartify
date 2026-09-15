@@ -19,6 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const recentGrid = document.getElementById('recent-grid');
     const recentSection = document.getElementById('recent-section');
 
+    const carouselTrack = document.getElementById('carousel-track');
+    const carouselDots = document.getElementById('carousel-dots');
+    const artistOfYearBlock = document.getElementById('artist-of-year');
+    const newReleasesBlock = document.getElementById('new-releases-block');
+
     const recommendBanner = document.getElementById('recommendation-banner');
     const recommendPlayBtn = document.getElementById('recommend-play-btn');
 
@@ -31,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPlayBtn = document.getElementById('modal-play-btn');
     const modalFooterDate = document.getElementById('modal-footer-date');
     const modalFooterLabel = document.getElementById('modal-footer-label');
+    const modalRating = document.getElementById('modal-rating');
+    const modalCritics = document.getElementById('modal-critics');
+    const modalCriticsList = document.getElementById('modal-critics-list');
     const closeBtn = document.querySelector('#album-modal .close');
 
     const playlistModal = document.getElementById('playlist-modal');
@@ -93,10 +101,16 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeBgLayer = 1;
     let previousPath = BASE_PATH;
     let initialPath = false;
+    let criticsData = [];
 
     let texts = {};
     let trackCovers = {};
     let autoPlaylists = [];
+
+    // Карусель
+    let currentSlide = 0;
+    let carouselTimer = null;
+    let artistOfYearData = null;
 
     const AUTO_PLAYLIST_COUNT = 5;
     const TRACKS_PER_PLAYLIST = 10;
@@ -196,13 +210,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------- НЕДАВНО ПРОСЛУШАННОЕ ----------
     function addToRecent(album) {
         if (!album || !album.title || !album.artist) return;
-        // Не сохраняем фиктивные альбомы (например, "Все треки ...", "Избранное")
         if (album.title.startsWith('Все треки ') || album.title === 'Избранное' || album.title === 'Fartify топ-50') return;
-        if (!allAlbums.some(a => a.title === album.title && a.artist === album.artist)) return; // только реальные релизы
+        if (!allAlbums.some(a => a.title === album.title && a.artist === album.artist)) return;
 
         try {
             let recent = JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
-            // Удаляем старую запись с таким же названием и артистом
             recent = recent.filter(r => !(r.title === album.title && r.artist === album.artist));
             recent.push({
                 title: album.title,
@@ -211,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 date: album.date || '',
                 timestamp: Date.now()
             });
-            // Храним не более 50 записей
             if (recent.length > 50) recent = recent.slice(recent.length - 50);
             localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
             renderRecent();
@@ -221,9 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadRecent() {
         try {
             let recent = JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
-            // Сортируем по дате (сначала новые)
             recent.sort((a, b) => b.timestamp - a.timestamp);
-            // Убираем дубликаты по названию и артисту (оставляем первый, т.е. самый свежий)
             const seen = new Set();
             const unique = [];
             for (const item of recent) {
@@ -263,8 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </svg>
                 </button>
             `;
-            // Обработчик клика по карточке – открыть модалку (обычное поведение ссылки)
-            // Для кнопки Play запускаем альбом
             const playBtn = card.querySelector('.album-play-btn');
             playBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -279,6 +286,248 @@ document.addEventListener('DOMContentLoaded', () => {
             recentGrid.appendChild(card);
         });
         callFitAfterRender();
+    }
+
+    // ---------- НОВИНКИ (релизы младше 10 дней) ----------
+    function formatReleaseDate(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d)) return dateStr;
+        const months = ['января','февраля','марта','апреля','мая','июня',
+                        'июля','августа','сентября','октября','ноября','декабря'];
+        return `${d.getDate()} ${months[d.getMonth()]}`;
+    }
+
+    function renderNewReleases() {
+        if (!newReleasesBlock) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const recentReleases = allAlbums.filter(album => {
+            if (!album.date) return false;
+            const releaseDate = new Date(album.date);
+            if (isNaN(releaseDate)) return false;
+            releaseDate.setHours(0, 0, 0, 0);
+            const diffDays = (today - releaseDate) / (1000 * 60 * 60 * 24);
+            return diffDays >= 0 && diffDays < 10;
+        });
+
+        recentReleases.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const slideEl = newReleasesBlock.closest('.carousel-slide');
+        const dotEl = carouselDots ? carouselDots.querySelector('[data-index="0"]') : null;
+
+        if (recentReleases.length === 0) {
+            newReleasesBlock.innerHTML = '';
+            if (slideEl) slideEl.style.display = 'none';
+            if (dotEl) dotEl.style.display = 'none';
+            return;
+        }
+
+        if (slideEl) slideEl.style.display = '';
+        if (dotEl) dotEl.style.display = '';
+
+        newReleasesBlock.innerHTML = '';
+
+        recentReleases.forEach(album => {
+            const card = document.createElement('a');
+            card.className = 'new-release-card';
+            card.href = BASE_PATH + 'release/' + encodeURIComponent(album.title);
+            card.innerHTML = `
+                <span class="new-release-badge">Новое</span>
+                <img src="photo/${album.cover}" alt="${album.title}" onerror="this.src='photo/placeholder.jpg'">
+                <button class="new-release-play" title="Играть">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 21,12 5,21"/>
+                    </svg>
+                </button>
+                <div class="new-release-info">
+                    <div class="new-release-title">${album.title}</div>
+                    <div class="new-release-artist">${album.artist}</div>
+                    <div class="new-release-date">${formatReleaseDate(album.date)}</div>
+                </div>
+            `;
+            card.querySelector('.new-release-play').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                playAlbumFromModal(album, shuffle ? Math.floor(Math.random() * album.tracks.length) : 0);
+            });
+            newReleasesBlock.appendChild(card);
+        });
+    }
+
+    // ---------- КРИТИКИ ----------
+    function getCriticsRating(albumTitle) {
+        if (!criticsData.length) return null;
+        const ratings = [];
+        criticsData.forEach(critic => {
+            if (critic.albums) {
+                critic.albums.forEach(entry => {
+                    if (entry.album === albumTitle && typeof entry.rating === 'number') {
+                        ratings.push({ critic: critic.critic, rating: entry.rating, review: entry.review || '' });
+                    }
+                });
+            }
+        });
+        if (ratings.length === 0) return null;
+        const avg = ratings.reduce((s, r) => s + r.rating, 0) / ratings.length;
+        return { average: Math.round(avg * 10) / 10, reviews: ratings };
+    }
+
+    function showCriticsForAlbum(albumTitle) {
+        const info = getCriticsRating(albumTitle);
+        if (info) {
+            modalRating.textContent = info.average.toFixed(1) + '/10';
+            modalRating.style.cursor = 'pointer';
+            modalRating.onclick = () => {
+                modalCritics.classList.toggle('hidden');
+                if (!modalCritics.classList.contains('hidden')) {
+                    modalCriticsList.innerHTML = '';
+                    info.reviews.forEach(r => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<div class="critic-name">${r.critic} <span class="critic-rating">${r.rating}/10</span></div>
+                                         <div class="critic-review">${r.review}</div>`;
+                        modalCriticsList.appendChild(li);
+                    });
+                }
+            };
+        } else {
+            modalRating.textContent = '';
+            modalRating.onclick = null;
+            modalCritics.classList.add('hidden');
+        }
+    }
+
+    // ---------- ИСПОЛНИТЕЛЬ ГОДА ----------
+    function renderArtistOfYear(data) {
+        if (!data || !artistOfYearBlock) return;
+        artistOfYearData = data;
+
+        const trackInfo = data.track || {};
+        let album = null;
+        let track = null;
+        if (trackInfo.file) {
+            album = allAlbums.find(a => a.tracks.some(t => t.file === trackInfo.file));
+            if (album) track = album.tracks.find(t => t.file === trackInfo.file);
+        }
+
+        const trackCover = trackInfo.cover || (track && track.cover) || (album && album.cover) || 'placeholder.jpg';
+        const trackTitle = trackInfo.title || (track && track.title) || 'Неизвестный трек';
+        const trackArtist = trackInfo.artist || (album && album.artist) || data.name;
+        const labelText = (album && album.label) ? album.label : '';
+
+        artistOfYearBlock.innerHTML = `
+            <div class="aoy-left">
+                <div class="aoy-name">${data.name}</div>
+                <img class="aoy-photo" src="photo/${data.photo}" alt="${data.name}" onerror="this.src='photo/placeholder.jpg'">
+            </div>
+            <div class="aoy-right">
+                <div class="aoy-description">${data.description || ''}</div>
+                <div class="aoy-track" id="aoy-track">
+                    <div class="aoy-track-cover-wrapper">
+                        <img class="aoy-track-cover" src="photo/${trackCover}" alt="" onerror="this.src='photo/placeholder.jpg'">
+                        <div class="aoy-track-play">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="6,3 20,12 6,21"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="aoy-track-info">
+                        <div class="aoy-track-text">
+                            <span class="aoy-track-title">${trackTitle}</span>
+                            <span class="aoy-track-artist">${trackArtist}</span>
+                        </div>
+                        ${labelText ? `<span class="aoy-track-label">${labelText}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const trackEl = document.getElementById('aoy-track');
+        trackEl.addEventListener('click', () => {
+            if (album && track) {
+                stopGlobalShuffle();
+                currentAlbum = album;
+                const idx = album.tracks.findIndex(t => t.file === track.file);
+                if (idx !== -1) playTrackByIndex(idx);
+            } else if (trackInfo.file) {
+                stopGlobalShuffle();
+                currentAlbum = {
+                    artist: trackArtist,
+                    cover: trackCover,
+                    title: 'Исполнитель года',
+                    tracks: [{
+                        file: trackInfo.file,
+                        title: trackTitle,
+                        artist: trackArtist,
+                        cover: trackCover,
+                        duration: trackInfo.duration || '0:00',
+                        plays: trackInfo.plays || ''
+                    }]
+                };
+                currentTrackIndex = 0;
+                loadAndPlay(currentAlbum.tracks[0]);
+            }
+        });
+    }
+
+    // ---------- КАРУСЕЛЬ ----------
+    function goToSlide(index) {
+        const allSlides = document.querySelectorAll('.carousel-slide');
+        const visibleSlides = Array.from(allSlides).filter(s => s.style.display !== 'none');
+        if (visibleSlides.length === 0) return;
+
+        const total = allSlides.length;
+        if (index < 0) index = total - 1;
+        if (index >= total) index = 0;
+
+        // Пропускаем скрытые слайды
+        let attempts = 0;
+        while (allSlides[index].style.display === 'none' && attempts < total) {
+            index = (index + 1) % total;
+            attempts++;
+        }
+
+        currentSlide = index;
+        carouselTrack.style.transform = `translateX(-${index * 100}%)`;
+
+        document.querySelectorAll('#carousel-dots .dot').forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
+        });
+    }
+
+    function startCarouselAuto() {
+        clearInterval(carouselTimer);
+        carouselTimer = setInterval(() => {
+            goToSlide(currentSlide + 1);
+        }, 25000);
+    }
+
+    if (carouselDots) {
+        carouselDots.addEventListener('click', (e) => {
+            const dot = e.target.closest('.dot');
+            if (!dot) return;
+            if (dot.style.display === 'none') return;
+            const idx = parseInt(dot.dataset.index, 10);
+            goToSlide(idx);
+            startCarouselAuto();
+        });
+    }
+
+    let touchStartX = 0;
+    if (carouselTrack) {
+        carouselTrack.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        carouselTrack.addEventListener('touchend', (e) => {
+            const diff = touchStartX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) goToSlide(currentSlide + 1);
+                else goToSlide(currentSlide - 1);
+                startCarouselAuto();
+            }
+        });
     }
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
@@ -300,9 +549,11 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('data.json').then(r => r.json()),
         fetch('artists.json').then(r => r.json()).catch(() => []),
         fetch('text.json').then(r => r.json()).catch(() => []),
-        fetch('track-covers.json').then(r => r.json()).catch(() => [])
+        fetch('track-covers.json').then(r => r.json()).catch(() => []),
+        fetch('critics.json').then(r => r.json()).catch(() => []),
+        fetch('artist-of-year.json').then(r => r.json()).catch(() => null)
     ])
-    .then(([albumsData, artistsData, textData, trackCoverData]) => {
+    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData]) => {
         allAlbums = albumsData;
         artistsMap = {};
         artistsData.forEach(a => { artistsMap[a.name] = a; });
@@ -311,15 +562,19 @@ document.addEventListener('DOMContentLoaded', () => {
         textData.forEach(t => { texts[t.file] = t.text; });
         trackCovers = {};
         trackCoverData.forEach(t => { trackCovers[t.file] = t.cover; });
+        criticsData = critics;
 
         buildUniqueArtists(albumsData);
         buildPlaylists();
         const shuffled = [...albumsData].sort(() => Math.random() - 0.5);
         renderAlbums(shuffled);
         generateAutoPlaylists();
-        renderRecent(); // отображаем недавние после загрузки всех альбомов
+        renderRecent();
+        renderArtistOfYear(aoyData);
+        renderNewReleases();
         callFitAfterRender();
         handleRouting();
+        startCarouselAuto();
 
         if (!initialPath && (getRelativePath() === '/' || getRelativePath() === BASE_PATH.replace(/\/$/, ''))) {
             restorePlayerFromState();
@@ -362,7 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
             playlistModal.classList.add('hidden');
             artistPage.classList.add('hidden');
             mainContent.classList.remove('hidden');
-            renderRecent(); // обновляем на случай, если история изменилась
+            renderRecent();
         }
     }
 
@@ -915,6 +1170,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <span>${totalDuration}</span>
         `;
 
+        showCriticsForAlbum(album.title);
+
         modalPlayBtn.onclick = () => {
             playAlbumFromModal(album, 0);
             modal.classList.add('hidden');
@@ -959,7 +1216,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         modalFooterDate.textContent = date ? date : '';
         modalFooterLabel.textContent = album.label || '';
-
+        modalCritics.classList.add('hidden');
         modal.classList.remove('hidden');
     }
 
@@ -967,7 +1224,7 @@ document.addEventListener('DOMContentLoaded', () => {
         stopGlobalShuffle();
         currentAlbum = album;
         playTrackByIndex(index);
-        addToRecent(album); // записываем в недавние
+        addToRecent(album);
     }
 
     function closeAlbumAndRestoreUrl() {
@@ -987,7 +1244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAndPlay(currentAlbum.tracks[currentTrackIndex]);
         if (!history.includes(currentTrackIndex)) history.push(currentTrackIndex);
         savePlayerState();
-        // addToRecent вызывается в момент запуска альбома (playAlbumFromModal) или при клике на кнопку Play
     }
 
     function getAverageColor(imgSrc, callback) {
@@ -1229,7 +1485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     repeatBtn.addEventListener('click', toggleRepeat);
     updateRepeatIcon();
 
-    // ---------- ПРОГРЕСС И ВРЕМЯ (с сохранением позиции) ----------
+    // ---------- ПРОГРЕСС И ВРЕМЯ ----------
     audio.addEventListener('timeupdate', () => {
         if (!audio.duration) return;
         const percent = (audio.currentTime / audio.duration) * 100;
@@ -1277,7 +1533,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ---------- ГРОМКОСТЬ (с сохранением) ----------
+    // ---------- ГРОМКОСТЬ ----------
     function updateVolumeUI() {
         const vol = audio.volume;
         volumeBar.value = vol * 100;

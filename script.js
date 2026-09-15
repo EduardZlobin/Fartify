@@ -107,6 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let trackCovers = {};
     let autoPlaylists = [];
 
+    // Караоке
+    let liveTexts = {};
+    let currentLyricLines = [];
+    let activeLyricIndex = -1;
+
     // Карусель
     let currentSlide = 0;
     let carouselTimer = null;
@@ -288,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         callFitAfterRender();
     }
 
-    // ---------- НОВИНКИ (релизы младше 10 дней) ----------
+    // ---------- НОВИНКИ ----------
     function formatReleaseDate(dateStr) {
         if (!dateStr) return '';
         const d = new Date(dateStr);
@@ -482,7 +487,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (index < 0) index = total - 1;
         if (index >= total) index = 0;
 
-        // Пропускаем скрытые слайды
         let attempts = 0;
         while (allSlides[index].style.display === 'none' && attempts < total) {
             index = (index + 1) % total;
@@ -530,6 +534,79 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ---------- РЕСАЙЗ ПАНЕЛИ ТЕКСТА ----------
+    (function initLyricsResize() {
+    const resizer = document.getElementById('lyrics-resizer');
+    console.log('resizer found:', resizer);      // ← временно для проверки
+    if (!resizer) return;
+
+        const BASE_WIDTH = 350;
+        const MIN_WIDTH = Math.round(BASE_WIDTH * 0.8);  // 280
+        const MAX_WIDTH = Math.round(BASE_WIDTH * 1.5);  // 525
+        const LS_KEY = 'fartify_lyrics_width';
+
+        let saved = parseInt(localStorage.getItem(LS_KEY), 10);
+        if (isNaN(saved)) saved = BASE_WIDTH;
+        saved = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, saved));
+
+        function applyWidth(w) {
+            document.documentElement.style.setProperty('--lyrics-width', w + 'px');
+        }
+        applyWidth(saved);
+
+        let isDragging = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        function getCurrentWidth() {
+            const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--lyrics-width'), 10);
+            return isNaN(v) ? BASE_WIDTH : v;
+        }
+
+        function beginDrag(clientX) {
+            isDragging = true;
+            startX = clientX;
+            startWidth = getCurrentWidth();
+            resizer.classList.add('active');
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'ew-resize';
+        }
+
+        function doDrag(clientX) {
+            if (!isDragging) return;
+            const deltaX = clientX - startX;
+            let newWidth = startWidth - deltaX;
+            newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, newWidth));
+            applyWidth(newWidth);
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            resizer.classList.remove('active');
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            localStorage.setItem(LS_KEY, getCurrentWidth());
+        }
+
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            beginDrag(e.clientX);
+        });
+        document.addEventListener('mousemove', (e) => doDrag(e.clientX));
+        document.addEventListener('mouseup', endDrag);
+
+        resizer.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            beginDrag(e.touches[0].clientX);
+        }, { passive: false });
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            doDrag(e.touches[0].clientX);
+        }, { passive: true });
+        document.addEventListener('touchend', endDrag);
+    })();
+
     // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     audio.volume = 0.7;
     updateVolumeUI();
@@ -551,9 +628,10 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('text.json').then(r => r.json()).catch(() => []),
         fetch('track-covers.json').then(r => r.json()).catch(() => []),
         fetch('critics.json').then(r => r.json()).catch(() => []),
-        fetch('artist-of-year.json').then(r => r.json()).catch(() => null)
+        fetch('artist-of-year.json').then(r => r.json()).catch(() => null),
+        fetch('live_text.json').then(r => r.json()).catch(() => ({}))
     ])
-    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData]) => {
+    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData, liveData]) => {
         allAlbums = albumsData;
         artistsMap = {};
         artistsData.forEach(a => { artistsMap[a.name] = a; });
@@ -563,6 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
         trackCovers = {};
         trackCoverData.forEach(t => { trackCovers[t.file] = t.cover; });
         criticsData = critics;
+        liveTexts = liveData || {};
 
         buildUniqueArtists(albumsData);
         buildPlaylists();
@@ -1317,12 +1396,86 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ---------- ПАНЕЛЬ ТЕКСТА / КАРАОКЕ ----------
     function updateLyricsPanel(track) {
-        const text = texts[track.file] || 'Увы, Гладун забыл текст этой песни';
-        lyricsText.textContent = text;
         const coverFile = track.cover || getTrackCover(track.file, allAlbums.filter(a => a.artist === track.artist));
         lyricsCover.src = `photo/${coverFile}`;
         lyricsBackground.style.backgroundImage = `url(photo/${coverFile})`;
+
+        currentLyricLines = [];
+        activeLyricIndex = -1;
+
+        const liveData = liveTexts[track.file];
+
+        if (Array.isArray(liveData) && liveData.length > 0) {
+            lyricsText.classList.add('karaoke');
+            lyricsText.innerHTML = '';
+            liveData.forEach(line => {
+                const div = document.createElement('div');
+                div.className = 'lyric-line';
+                div.dataset.time = line.time;
+
+                const textSpan = document.createElement('span');
+                textSpan.textContent = line.text || '';
+                div.appendChild(textSpan);
+
+                if (line.gif) {
+                    const gif = document.createElement('img');
+                    gif.className = 'lyric-line-gif';
+                    gif.src = line.gif;
+                    gif.alt = '';
+                    gif.onerror = () => { gif.style.display = 'none'; };
+                    div.appendChild(gif);
+                }
+
+                lyricsText.appendChild(div);
+                currentLyricLines.push(div);
+            });
+
+            updateKaraokeLines();
+        } else {
+            lyricsText.classList.remove('karaoke');
+            const text = texts[track.file] || 'Увы, Гладун забыл текст этой песни';
+            const pre = document.createElement('pre');
+            pre.className = 'lyrics-plain';
+            pre.textContent = text;
+            lyricsText.innerHTML = '';
+            lyricsText.appendChild(pre);
+        }
+    }
+
+    function updateKaraokeLines() {
+        if (!currentLyricLines.length) return;
+
+        const t = audio.currentTime;
+        let newActiveIndex = -1;
+
+        for (let i = 0; i < currentLyricLines.length; i++) {
+            const lineTime = parseFloat(currentLyricLines[i].dataset.time);
+            if (!isNaN(lineTime) && t >= lineTime) newActiveIndex = i;
+            else break;
+        }
+
+        if (newActiveIndex === activeLyricIndex) return;
+
+        currentLyricLines.forEach((line, i) => {
+            const dist = Math.abs(i - newActiveIndex);
+            line.classList.toggle('active', i === newActiveIndex);
+            line.classList.toggle('past', i < newActiveIndex);
+            line.classList.toggle('near', dist >= 1 && dist <= 2);
+            line.classList.toggle('far', dist >= 3);
+        });
+
+        activeLyricIndex = newActiveIndex;
+
+        if (newActiveIndex >= 0) {
+            const el = currentLyricLines[newActiveIndex];
+            const container = el.closest('.lyrics-content');
+            if (container) {
+                const targetTop = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
+                container.scrollTo({ top: targetTop, behavior: 'smooth' });
+            }
+        }
     }
 
     function updatePlayPauseIcon(playing) {
@@ -1492,6 +1645,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.value = percent;
         progressFill.style.width = percent + '%';
         currentTimeEl.textContent = formatTime(audio.currentTime);
+        updateKaraokeLines();
         clearTimeout(saveTimeTimeout);
         saveTimeTimeout = setTimeout(savePlayerState, 5000);
     });
@@ -1501,6 +1655,11 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.max = 100;
         progressBar.value = 0;
         progressFill.style.width = '0%';
+    });
+
+    audio.addEventListener('seeked', () => {
+        activeLyricIndex = -1;
+        updateKaraokeLines();
     });
 
     progressBar.addEventListener('input', () => {

@@ -610,3 +610,395 @@ a.artist-card, a.album-card, a.playlist-card {
     gap: 24px;
     padding: 0 20px;
 }
+
+/* ---------- Карусель ---------- */
+.hero-carousel {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto 30px;
+    overflow: hidden;
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s ease;
+    width: 100%;
+}
+
+.carousel-slide {
+    flex: 0 0 100%;
+    min-width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+.carousel-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.carousel-dots .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(124, 124, 124, 0.3);
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s;
+}
+
+.carousel-dots .dot.active {
+    background: #7B2FF7;
+    transform: scale(1.2);
+}
+
+.carousel-dots .dot:hover {
+    background: rgba(255,255,255,0.6);
+}
+
+/* ---------- Исполнитель года ---------- */
+.artist-of-year {
+    display: flex;
+    gap: 24px;
+    padding: 24px;
+    border-radius: 12px;
+    background: rgba(24,24,24,0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    min-height: 300px;
+}
+
+/* Левая часть: имя + фото */
+.aoy-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 220px;
+    flex-shrink: 0;
+}
+
+.aoy-name {
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    color: #fff;
+}
+
+.aoy-photo {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+/* Правая часть: описание + трек */
+.aoy-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 20px;
+    min-width: 0;
+}
+
+.aoy-description {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #cfcfcf;
+}
+
+/* Карточка трека */
+.aoy-track {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.aoy-track:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(123,47,247,0.3);
+}
+
+.aoy-track-cover-wrapper {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.aoy-track-cover {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+}
+
+.aoy-track-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: #fff;
+}
+
+.aoy-track:hover .aoy-track-play {
+    opacity: 1;
+}
+
+.aoy-track-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-width: 0;
+    flex: 1;
+}
+
+.aoy-track-text {
+    display: flex;
+    flex-direction: column;   /* ← название сверху, автор снизу */
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+}
+
+.aoy-track-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aoy-track-artist {
+    font-size: 14px;
+    color: #b3b3b3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aoy-track-label {
+    font-size: 12px;
+    color: #888;
+    font-style: italic;
+    letter-spacing: 0.2px;
+    text-align: right;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ---------- Адаптивность ---------- */
+@media (max-width: 700px) {
+    .artist-of-year {
+        flex-direction: column;
+        align-items: center;
+        padding: 16px;
+        gap: 16px;
+    }
+    .aoy-left {
+        min-width: 0;
+    }
+    .aoy-photo {
+        width: 160px;
+        height: 160px;
+    }
+    .aoy-name {
+        font-size: 18px;
+    }
+    .aoy-right {
+        width: 100%;
+    }
+    .aoy-track-cover-wrapper,
+    .aoy-track-cover {
+        width: 60px;
+        height: 60px;
+    }
+}
+/* ---------- Блок «Новинки» ---------- */
+.new-releases-block {
+    display: flex;
+    gap: 20px;
+    padding: 24px;
+    background: rgba(24,24,24,0.8);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    min-height: 300px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+
+.new-releases-block::-webkit-scrollbar {
+    height: 6px;
+}
+.new-releases-block::-webkit-scrollbar-track {
+    background: transparent;
+}
+.new-releases-block::-webkit-scrollbar-thumb {
+    background: rgba(123,47,247,0.4);
+    border-radius: 3px;
+}
+
+/* Заголовок блока */
+.new-releases-block::before {
+    content: "🆕 Новинки";
+    position: absolute;
+    top: 12px;
+    left: 24px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #7B2FF7;
+    letter-spacing: 0.5px;
+}
+
+.new-releases-block {
+    position: relative;
+    padding-top: 46px;
+}
+
+/* Карточка отдельного релиза */
+.new-release-card {
+    position: relative;
+    flex: 0 0 180px;
+    width: 180px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(30,30,30,0.9);
+    border: 1px solid rgba(123,47,247,0.4);
+    box-shadow: 0 0 12px rgba(123,47,247,0.25);
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.new-release-card:hover {
+    transform: translateY(-4px);
+    border-color: #7B2FF7;
+    box-shadow: 0 8px 24px rgba(123,47,247,0.55);
+}
+
+.new-release-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+}
+
+.new-release-info {
+    padding: 12px;
+}
+
+.new-release-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+
+.new-release-artist {
+    font-size: 13px;
+    color: #b3b3b3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.new-release-date {
+    font-size: 12px;
+    color: #7B2FF7;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+/* Бейдж «НОВОЕ» */
+.new-release-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #7B2FF7 0%, #e91e63 100%);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(123,47,247,0.6);
+    z-index: 2;
+    text-transform: uppercase;
+    animation: newBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes newBadgePulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(123,47,247,0.6); }
+    50%      { box-shadow: 0 2px 16px rgba(233,30,99,0.8); }
+}
+
+/* Кнопка Play на карточке релиза */
+.new-release-play {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #7B2FF7;
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s;
+    z-index: 3;
+}
+
+.new-release-card:hover .new-release-play {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.new-release-play:hover {
+    background: #9D4EDD;
+}
+
+/* Адаптивность */
+@media (max-width: 700px) {
+    .new-releases-block {
+        padding: 46px 16px 16px;
+    }
+    .new-release-card {
+        flex: 0 0 140px;
+        width: 140px;
+    }
+}

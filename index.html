@@ -42,7 +42,21 @@
 
     <main>
         <div id="main-content">
-            <!-- Баннер рекомендаций -->
+<!-- Карусель баннеров -->
+<div id="hero-carousel" class="hero-carousel">
+    <div class="carousel-track" id="carousel-track">
+        <!-- Слайд 1: Новинки -->
+        <div class="carousel-slide">
+            <div id="new-releases-block" class="new-releases-block"></div>
+        </div>
+
+        <!-- Слайд 2: Исполнитель года -->
+        <div class="carousel-slide">
+            <div id="artist-of-year" class="artist-of-year"></div>
+        </div>
+
+        <!-- Слайд 3: Баннер рекомендаций -->
+        <div class="carousel-slide">
             <div id="recommendation-banner" class="recommendation-banner">
                 <img src="photo/banner.png" alt="Рекомендации" class="banner-img" onerror="this.style.display='none'">
                 <button id="recommend-play-btn" class="recommend-play-btn">
@@ -51,6 +65,15 @@
                     </svg>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <div class="carousel-dots" id="carousel-dots">
+        <span class="dot active" data-index="0"></span>
+        <span class="dot" data-index="1"></span>
+        <span class="dot" data-index="2"></span>
+    </div>
+</div>
 
             <!-- Плейлисты -->
 <section id="playlists-section" class="section scrollable-section">
@@ -216,35 +239,45 @@
     <!-- Модальное окно альбома -->
     <div id="album-modal" class="modal hidden">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <div class="modal-header">
-                <img id="modal-cover" src="" alt="Обложка">
-                <div class="modal-info">
-                    <span id="modal-type" class="modal-type-label">Тип</span>
-                    <h2 id="modal-title">Название</h2>
-                    <div id="modal-meta" class="modal-meta"></div>
-                    <button id="modal-play-btn" class="modal-play-btn">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="6,3 20,12 6,21"/>
-                        </svg>
-                    </button>
-                </div>
+    <span class="close">&times;</span>
+    <div class="modal-main">
+        <div class="modal-header">
+            <img id="modal-cover" src="" alt="Обложка">
+            <div class="modal-info">
+                <span id="modal-type" class="modal-type-label">Тип</span>
+                <h2 id="modal-title">Название</h2>
+                <div id="modal-meta" class="modal-meta"></div>
+                <button id="modal-play-btn" class="modal-play-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="6,3 20,12 6,21"/>
+                    </svg>
+                </button>
             </div>
-            <div class="modal-tracks-table">
-                <div class="tracks-header">
-                    <span>#</span>
-                    <span>Название</span>
-                    <span>Прослушивания</span>
-                    <span>Длительность</span>
-                    <span></span>
-                </div>
-                <ul id="modal-tracks" class="tracks-list"></ul>
-            </div>
-            <div class="modal-footer">
-                <span id="modal-footer-date"></span>
-                <span id="modal-footer-label"></span>
-            </div>
+            <!-- Оценка теперь здесь, справа от названия -->
+            <span id="modal-rating" class="modal-rating">0/10</span>
         </div>
+        <div class="modal-tracks-table">
+            <div class="tracks-header">
+                <span>#</span>
+                <span>Название</span>
+                <span>Прослушивания</span>
+                <span>Длительность</span>
+                <span></span>
+            </div>
+            <ul id="modal-tracks" class="tracks-list"></ul>
+        </div>
+        <div class="modal-footer">
+            <span id="modal-footer-date"></span>
+            <span id="modal-footer-label"></span>
+        </div>
+    </div>
+
+    <!-- Панель отзывов (выезжает справа) -->
+    <div id="modal-critics" class="modal-critics hidden">
+        <h3>Отзывы лицензированных критиков</h3>
+        <ul id="modal-critics-list"></ul>
+    </div>
+</div>
     </div>
 
     <!-- Модальное окно плейлиста -->

@@ -1958,3 +1958,349 @@ body.lyrics-open .hero-carousel {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* ===========================================
+   МОДАЛЬНОЕ ОКНО АЛЬБОМА / СИНГЛА — новый стиль
+   =========================================== */
+.modal-content {
+    background:
+        radial-gradient(circle at 0% 0%, rgba(123,47,247,0.12) 0%, transparent 45%),
+        radial-gradient(circle at 100% 100%, rgba(233,30,99,0.08) 0%, transparent 50%),
+        linear-gradient(180deg, #1a1624 0%, #12121a 100%);
+    border-radius: 20px;
+    max-width: 850px;
+    width: 95%;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+    padding: 32px 36px;
+    position: relative;
+    border: 1px solid rgba(123,47,247,0.25);
+    box-shadow:
+        0 24px 60px rgba(0,0,0,0.85),
+        0 0 0 1px rgba(123,47,247,0.15) inset,
+        0 0 40px rgba(123,47,247,0.15);
+    animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Градиентная линия сверху */
+.modal-content::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px 20px 0 0;
+    pointer-events: none;
+}
+
+/* Скроллбар модалки */
+.modal-content::-webkit-scrollbar { width: 6px; }
+.modal-content::-webkit-scrollbar-track { background: transparent; }
+.modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(123,47,247,0.6), rgba(233,30,99,0.6));
+    border-radius: 3px;
+}
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #7B2FF7, #e91e63);
+}
+
+/* ---------- Шапка: обложка + информация ---------- */
+.modal-header {
+    display: flex;
+    gap: 26px;
+    margin-bottom: 30px;
+    align-items: center;
+}
+
+#modal-cover {
+    width: 220px;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 14px;
+    flex-shrink: 0;
+    box-shadow:
+        0 16px 40px rgba(0,0,0,0.75),
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 0 30px rgba(123,47,247,0.2);
+}
+
+.modal-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    flex: 1;
+}
+
+.modal-type-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: #e6e6e6;
+    background: rgba(20, 20, 26, 0.85);
+    backdrop-filter: blur(6px);
+    padding: 5px 12px;
+    border-radius: 6px;
+    align-self: flex-start;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+}
+
+#modal-title {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    letter-spacing: 0.2px;
+    color: #fff;
+}
+
+.modal-meta {
+    font-size: 14px;
+    color: #b3b3b3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.modal-meta span.separator {
+    font-weight: bold;
+    color: #7B2FF7;
+    opacity: 0.8;
+}
+
+/* ---------- Кнопка Play в модалке ---------- */
+.modal-play-btn {
+    background: linear-gradient(135deg, #7B2FF7 0%, #9D4EDD 100%);
+    color: #fff;
+    border: none;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    align-self: flex-start;
+    box-shadow:
+        0 8px 20px rgba(123,47,247,0.5),
+        0 0 0 1px rgba(255,255,255,0.1) inset,
+        0 0 24px rgba(123,47,247,0.3);
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.modal-play-btn:hover {
+    transform: scale(1.08);
+    background: linear-gradient(135deg, #9D4EDD 0%, #e91e63 100%);
+    box-shadow:
+        0 10px 26px rgba(233,30,99,0.5),
+        0 0 0 1px rgba(255,255,255,0.15) inset,
+        0 0 30px rgba(233,30,99,0.45);
+}
+
+/* Оценка справа */
+#modal-rating {
+    font-size: 26px;
+    font-weight: 800;
+    color: #7B2FF7;
+    cursor: pointer;
+    white-space: nowrap;
+    margin-left: auto;
+    align-self: center;
+    padding: 6px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(123,47,247,0.3);
+    background: rgba(123,47,247,0.08);
+    transition: all 0.2s;
+    text-shadow: 0 0 12px rgba(123,47,247,0.5);
+}
+
+#modal-rating:hover {
+    color: #fff;
+    background: linear-gradient(135deg, #7B2FF7 0%, #e91e63 100%);
+    border-color: transparent;
+    box-shadow: 0 4px 16px rgba(123,47,247,0.55);
+}
+
+#modal-rating:empty {
+    display: none;
+}
+
+/* ---------- Таблица треков ---------- */
+.modal-tracks-table {
+    margin-top: 8px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+
+.modal-tracks-table .tracks-header {
+    display: grid;
+    grid-template-columns: 30px 1fr 120px 80px 40px;
+    gap: 16px;
+    padding: 4px 12px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #9a9aa5;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 8px;
+}
+
+.modal-tracks-table .track-row {
+    display: grid;
+    grid-template-columns: 30px 1fr 120px 80px 40px;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Левая полоса при наведении */
+.modal-tracks-table .track-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #7B2FF7 0%, #e91e63 100%);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    border-radius: 0 3px 3px 0;
+}
+
+.modal-tracks-table .track-row:hover {
+    background: linear-gradient(90deg, rgba(123,47,247,0.1) 0%, rgba(123,47,247,0.02) 100%);
+    transform: translateX(2px);
+}
+
+.modal-tracks-table .track-row:hover::before {
+    opacity: 1;
+}
+
+/* Активный трек */
+.modal-tracks-table .track-row.playing {
+    background: linear-gradient(90deg, rgba(123,47,247,0.18) 0%, rgba(233,30,99,0.06) 100%);
+}
+
+.modal-tracks-table .track-row.playing::before {
+    opacity: 1;
+    box-shadow: 0 0 14px rgba(123,47,247,0.7);
+}
+
+.modal-tracks-table .track-row.playing .track-title-col {
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(123,47,247,0.35);
+}
+
+.modal-tracks-table .track-row.playing .track-num {
+    color: #7B2FF7;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-tracks-table .track-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-tracks-table .track-title-col {
+    font-weight: 500;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+}
+
+.modal-tracks-table .track-plays {
+    color: #9a9aa5;
+    font-size: 13px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.modal-tracks-table .track-duration {
+    color: #9a9aa5;
+    font-size: 13px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Кнопка сердечка */
+.modal-tracks-table .favorite-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #6e6e78;
+    transition: color 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-tracks-table .favorite-btn:hover {
+    color: #fff;
+    transform: scale(1.15);
+}
+
+.modal-tracks-table .favorite-btn.active {
+    color: #e91e63;
+    filter: drop-shadow(0 0 6px rgba(233,30,99,0.6));
+}
+
+/* ---------- Футер ---------- */
+.modal-footer {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #7a7a85;
+}
+
+/* ---------- Кнопка закрытия ---------- */
+#album-modal .close {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    font-size: 26px;
+    cursor: pointer;
+    color: #b3b3b3;
+    transition: color 0.2s, transform 0.2s, background 0.2s;
+    line-height: 1;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.05);
+    z-index: 10;
+}
+
+#album-modal .close:hover {
+    color: #fff;
+    transform: rotate(90deg);
+    background: linear-gradient(135deg, #7B2FF7 0%, #e91e63 100%);
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(123,47,247,0.5);
+}

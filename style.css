@@ -461,8 +461,8 @@ a.artist-card {
 /* Мини-обложка первого трека — в правом нижнем углу обложки */
 .playlist-card .playlist-mini-cover {
     position: absolute;
-    bottom: 76px;
-    right: 8px;
+    top: 120px;
+    right: 10px;
     width: 36%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
@@ -470,7 +470,6 @@ a.artist-card {
     box-shadow:
         0 4px 12px rgba(0,0,0,0.75),
         0 0 0 2px rgba(255,255,255,0.18);
-    border: none;
     z-index: 3;
     margin: 0;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -2303,4 +2302,100 @@ body.lyrics-open .hero-carousel {
     background: linear-gradient(135deg, #7B2FF7 0%, #e91e63 100%);
     border-color: transparent;
     box-shadow: 0 4px 12px rgba(123,47,247,0.5);
+}
+
+/* Кнопка всегда видна, если это играющий релиз */
+.album-card .album-play-btn.is-playing-state {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow:
+        0 6px 18px rgba(123,47,247,0.7),
+        0 0 0 1px rgba(255,255,255,0.15) inset,
+        0 0 22px rgba(123,47,247,0.55);
+}
+
+.new-release-card .new-release-play.is-playing-state {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow:
+        0 6px 18px rgba(123,47,247,0.7),
+        0 0 0 1px rgba(255,255,255,0.15) inset,
+        0 0 22px rgba(123,47,247,0.55);
+}
+
+/* Карточка играющего релиза чуть больше */
+.album-card.is-playing,
+.new-release-card.is-playing,
+.playlist-card.is-playing {
+    transform: translateY(-6px) scale(1.03);
+    border-color: rgba(123,47,247,0.55);
+    box-shadow:
+        0 14px 30px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(123,47,247,0.35),
+        0 0 24px rgba(123,47,247,0.3);
+    z-index: 2;
+}
+
+.playlist-card .playlist-play-btn {
+    position: absolute;
+    bottom: 44px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 4;
+    background: linear-gradient(135deg, #7B2FF7 0%, #9D4EDD 100%);
+    box-shadow:
+        0 6px 16px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(255,255,255,0.1) inset;
+    opacity: 0;
+    transform: translateY(8px) scale(0.9);
+    transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s ease;
+}
+
+.playlist-card:hover .playlist-play-btn {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.playlist-card .playlist-play-btn:hover {
+    background: linear-gradient(135deg, #9D4EDD 0%, #e91e63 100%);
+    transform: scale(1.08);
+}
+
+.playlist-card .playlist-play-btn.is-playing-state {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow:
+        0 6px 18px rgba(123,47,247,0.7),
+        0 0 0 1px rgba(255,255,255,0.15) inset,
+        0 0 22px rgba(123,47,247,0.55);
+}
+
+/* Подсветка активной строки в модалке плейлиста */
+.playlist-tracks-table .track-row.playing {
+    background: linear-gradient(90deg, rgba(123,47,247,0.18) 0%, rgba(233,30,99,0.06) 100%);
+}
+.playlist-tracks-table .track-row.playing .track-title-col {
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(123,47,247,0.35);
+}
+.playlist-tracks-table .track-row.playing .track-num {
+    color: #7B2FF7;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.playlist-tracks-table .track-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

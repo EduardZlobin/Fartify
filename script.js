@@ -1,8 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ---------- БАЗОВЫЙ ПУТЬ ----------
     const BASE_PATH = window.location.pathname.indexOf('/Fartify/') === 0 ? '/Fartify/' : '/';
 
-    // ---------- DOM-ЭЛЕМЕНТЫ ----------
     const mainContent = document.getElementById('main-content');
     const artistPage = document.getElementById('artist-page');
     const backBtn = document.getElementById('back-btn');
@@ -85,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageModalImg = document.getElementById('image-modal-img');
     const closeImageModal = imageModal ? imageModal.querySelector('.close') : null;
 
-    // ---------- ГЛОБАЛЬНОЕ СОСТОЯНИЕ ----------
     let allAlbums = [];
     let artistsMap = {};
     let currentAlbum = null;
@@ -102,6 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let initialPath = false;
     let criticsData = [];
     let openedModalAlbum = null;
+    let openedPlaylistTitle = null;
+    let openedPlaylistTracks = [];
 
     let texts = {};
     let trackCovers = {};
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const AUTO_PLAYLIST_COUNT = 5;
     const TRACKS_PER_PLAYLIST = 10;
 
-    // ---------- SVG-ИКОНКИ ----------
+    // ---------- ИКОНКИ ----------
     function getPlaySvg(size) {
         return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 21,12 5,21"/></svg>`;
     }
@@ -125,31 +124,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="3" width="6" height="18" rx="0.5"/><rect x="14" y="3" width="6" height="18" rx="0.5"/></svg>`;
     }
 
-    // ---------- ОБНОВЛЕНИЕ UI ПЛЕЕРА / КНОПОК / ПОДСВЕТКИ ----------
+    // ---------- ОБНОВЛЕНИЕ UI ----------
     function updatePlaybackUI() {
         const isPlaying = !audio.paused && !!audio.src;
+        const isPlaylistPlaying = currentAlbum && currentAlbum.isPlaylist && !isGlobalShuffle;
+        const isAlbumPlaying = currentAlbum && !currentAlbum.isPlaylist && !isGlobalShuffle;
 
-        // --- Модалка альбома ---
+        // Модалка альбома
         if (openedModalAlbum && !modal.classList.contains('hidden')) {
-            const isThisAlbum = currentAlbum
+            const isThisAlbum = isAlbumPlaying
                 && currentAlbum.title === openedModalAlbum.title
-                && currentAlbum.artist === openedModalAlbum.artist
-                && !isGlobalShuffle;
+                && currentAlbum.artist === openedModalAlbum.artist;
 
-            // Кнопка
-            if (isThisAlbum) {
-                modalPlayBtn.innerHTML = isPlaying ? getPauseSvg(24) : getPlaySvg(24);
-            } else {
-                modalPlayBtn.innerHTML = getPlaySvg(24);
-            }
+            modalPlayBtn.innerHTML = isThisAlbum && isPlaying ? getPauseSvg(24) : getPlaySvg(24);
 
-            // Подсветка треков
             const rows = modalTracks.querySelectorAll('.track-row');
             rows.forEach((row, idx) => {
                 const isCurrent = isThisAlbum && idx === currentTrackIndex;
                 row.classList.toggle('playing', isCurrent && isPlaying);
-                row.classList.toggle('paused', isCurrent && !isPlaying);
-
                 const numSpan = row.querySelector('.track-num');
                 if (numSpan) {
                     if (isCurrent && isPlaying) {
@@ -163,47 +155,94 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // --- Карточки релизов на главной / недавно / для вас ---
+        // Модалка плейлиста
+        if (openedPlaylistTitle && !playlistModal.classList.contains('hidden')) {
+            const isThisPlaylist = isPlaylistPlaying
+                && currentAlbum.playlistTitle === openedPlaylistTitle;
+
+            playlistPlayBtn.innerHTML = isThisPlaylist && isPlaying ? getPauseSvg(24) : getPlaySvg(24);
+
+            const rows = playlistTracksList.querySelectorAll('.track-row');
+            rows.forEach((row, idx) => {
+                const isCurrent = isThisPlaylist && idx === currentTrackIndex;
+                row.classList.toggle('playing', isCurrent && isPlaying);
+                const numSpan = row.querySelector('.track-num');
+                if (numSpan) {
+                    if (isCurrent && isPlaying) {
+                        numSpan.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="3" width="6" height="18"/><rect x="14" y="3" width="6" height="18"/></svg>`;
+                    } else if (isCurrent && !isPlaying) {
+                        numSpan.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 21,12 5,21"/></svg>`;
+                    } else {
+                        numSpan.textContent = idx + 1;
+                    }
+                }
+            });
+        }
+
+        // Карточки релизов
         document.querySelectorAll('.album-card').forEach(card => {
             const albumTitle = card.dataset.albumTitle;
             const albumArtist = card.dataset.albumArtist;
             const btn = card.querySelector('.album-play-btn');
             if (!btn || !albumTitle) return;
 
-            const isThisAlbum = currentAlbum
+            const isThisAlbum = isAlbumPlaying
                 && currentAlbum.title === albumTitle
-                && currentAlbum.artist === albumArtist
-                && !isGlobalShuffle;
+                && currentAlbum.artist === albumArtist;
 
             if (isThisAlbum) {
                 btn.innerHTML = isPlaying ? getPauseSvg(20) : getPlaySvg(20);
-                btn.classList.toggle('is-playing-state', isPlaying);
+                btn.classList.add('is-playing-state');
+                card.classList.add('is-playing');
             } else {
                 btn.innerHTML = getPlaySvg(20);
                 btn.classList.remove('is-playing-state');
+                card.classList.remove('is-playing');
             }
         });
 
-        // --- Карточки новинок ---
+        // Карточки новинок
         document.querySelectorAll('.new-release-card').forEach(card => {
             const albumTitle = card.dataset.albumTitle;
             const albumArtist = card.dataset.albumArtist;
             const btn = card.querySelector('.new-release-play');
             if (!btn || !albumTitle) return;
 
-            const isThisAlbum = currentAlbum
+            const isThisAlbum = isAlbumPlaying
                 && currentAlbum.title === albumTitle
-                && currentAlbum.artist === albumArtist
-                && !isGlobalShuffle;
+                && currentAlbum.artist === albumArtist;
 
             if (isThisAlbum) {
                 btn.innerHTML = isPlaying ? getPauseSvg(16) : getPlaySvg(16);
+                btn.classList.add('is-playing-state');
+                card.classList.add('is-playing');
             } else {
                 btn.innerHTML = getPlaySvg(16);
+                btn.classList.remove('is-playing-state');
+                card.classList.remove('is-playing');
             }
         });
 
-        // --- Кнопка на баннере рекомендаций ---
+        // Карточки плейлистов
+        document.querySelectorAll('.playlist-card').forEach(card => {
+            const plTitle = card.dataset.playlistTitle;
+            const btn = card.querySelector('.playlist-play-btn');
+            if (!btn || !plTitle) return;
+
+            const isThisPlaylist = isPlaylistPlaying && currentAlbum.playlistTitle === plTitle;
+
+            if (isThisPlaylist) {
+                btn.innerHTML = isPlaying ? getPauseSvg(20) : getPlaySvg(20);
+                btn.classList.add('is-playing-state');
+                card.classList.add('is-playing');
+            } else {
+                btn.innerHTML = getPlaySvg(20);
+                btn.classList.remove('is-playing-state');
+                card.classList.remove('is-playing');
+            }
+        });
+
+        // Баннер рекомендаций
         if (isGlobalShuffle) {
             recommendPlayBtn.innerHTML = isPlaying ? getPauseSvg(32) : getPlaySvg(32);
         } else {
@@ -211,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---------- СОХРАНЕНИЕ СОСТОЯНИЯ ПЛЕЕРА ----------
+    // ---------- СОХРАНЕНИЕ СОСТОЯНИЯ ----------
     const STORAGE_KEY = 'fartify_player_state';
     const RECENT_KEY = 'fartify_recent';
     let saveTimeTimeout;
@@ -223,6 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: currentAlbum.title,
                 artist: currentAlbum.artist,
                 cover: currentAlbum.cover,
+                isPlaylist: !!currentAlbum.isPlaylist,
+                playlistTitle: currentAlbum.playlistTitle || null,
                 tracks: currentAlbum.tracks.map(t => ({
                     file: t.file,
                     title: t.title,
@@ -244,8 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
     }
 
-    function clearPlayerState() { localStorage.removeItem(STORAGE_KEY); }
-
     function loadPlayerState() {
         try {
             const data = localStorage.getItem(STORAGE_KEY);
@@ -257,13 +296,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function restorePlayerFromState() {
         const state = loadPlayerState();
         if (!state || !state.album || !state.album.tracks || state.trackIndex < 0) return;
-        const originalAlbum = allAlbums.find(a => a.title === state.album.title && a.artist === state.album.artist);
+        const originalAlbum = !state.album.isPlaylist
+            ? allAlbums.find(a => a.title === state.album.title && a.artist === state.album.artist)
+            : null;
         if (originalAlbum) currentAlbum = originalAlbum;
         else currentAlbum = {
             artist: state.album.artist,
             cover: state.album.cover,
             title: state.album.title,
-            tracks: state.album.tracks
+            tracks: state.album.tracks,
+            isPlaylist: !!state.album.isPlaylist,
+            playlistTitle: state.album.playlistTitle || null
         };
         currentTrackIndex = state.trackIndex;
         shuffle = state.shuffle || false;
@@ -278,10 +321,21 @@ document.addEventListener('DOMContentLoaded', () => {
             playerCover.src = `photo/${track.cover || currentAlbum.cover}`;
             playerTitle.textContent = track.title || '';
             playerArtist.textContent = track.artist || currentAlbum.artist;
-            playerFavBtn.classList.toggle('active', isFavorite({
-                file: track.file, title: track.title, artist: track.artist || currentAlbum.artist,
-                cover: track.cover || currentAlbum.cover
-            }));
+
+            const trackWithMeta = {
+                file: track.file,
+                title: track.title,
+                artist: track.artist || currentAlbum.artist,
+                cover: track.cover || currentAlbum.cover,
+                albumTitle: track.albumTitle || currentAlbum.title,
+                duration: track.duration,
+                plays: track.plays
+            };
+            const isFav = isFavorite(trackWithMeta);
+            playerFavBtn.classList.toggle('active', isFav);
+            updatePlayerHeartFill(isFav);
+            playerFavBtn.onclick = () => toggleFavorite(trackWithMeta);
+
             audio.currentTime = state.currentTime || 0;
             audio.volume = state.volume || 0.7;
             updateVolumeUI();
@@ -306,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return diffDays >= 0 && diffDays < 10;
     }
 
-    // ---------- НЕДАВНО ПРОСЛУШАННОЕ ----------
+    // ---------- НЕДАВНО ----------
     function addToRecent(album) {
         if (!album || !album.title || !album.artist) return;
         if (album.title.startsWith('Все треки ') || album.title === 'Избранное' || album.title === 'Fartify топ-50') return;
@@ -314,13 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             let recent = JSON.parse(localStorage.getItem(RECENT_KEY)) || [];
             recent = recent.filter(r => !(r.title === album.title && r.artist === album.artist));
-            recent.push({
-                title: album.title,
-                artist: album.artist,
-                cover: album.cover,
-                date: album.date || '',
-                timestamp: Date.now()
-            });
+            recent.push({ title: album.title, artist: album.artist, cover: album.cover, date: album.date || '', timestamp: Date.now() });
             if (recent.length > 50) recent = recent.slice(recent.length - 50);
             localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
             renderRecent();
@@ -358,12 +406,10 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.albumTitle = item.title;
             card.dataset.albumArtist = item.artist;
             card.innerHTML = `
-                ${type ? `
-                    <span class="release-type-badge ${isNew ? 'is-new' : ''}">
-                        <span class="badge-new">Новое</span>
-                        <span class="badge-type">${type}</span>
-                    </span>
-                ` : ''}
+                ${type ? `<span class="release-type-badge ${isNew ? 'is-new' : ''}">
+                    <span class="badge-new">Новое</span>
+                    <span class="badge-type">${type}</span>
+                </span>` : ''}
                 <img src="photo/${item.cover}" alt="${item.title}" onerror="this.src='photo/placeholder.jpg'">
                 <button class="album-play-btn" title="Играть">${getPlaySvg(20)}</button>
                 <div class="title">${item.title}</div>
@@ -372,8 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             const playBtn = card.querySelector('.album-play-btn');
             playBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                e.preventDefault(); e.stopPropagation();
                 const album = allAlbums.find(a => a.title === item.title && a.artist === item.artist);
                 if (album) handleCardPlayClick(album);
             });
@@ -388,14 +433,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!dateStr) return '';
         const d = new Date(dateStr);
         if (isNaN(d)) return dateStr;
-        const months = ['января','февраля','марта','апреля','мая','июня',
-                        'июля','августа','сентября','октября','ноября','декабря'];
+        const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
         return `${d.getDate()} ${months[d.getMonth()]}`;
     }
 
     function renderNewReleases() {
         if (!newReleasesBlock) return;
-
         const recentReleases = allAlbums.filter(album => isFreshRelease(album.date));
         recentReleases.sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -413,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dotEl) dotEl.style.display = '';
 
         newReleasesBlock.innerHTML = '';
-
         recentReleases.forEach(album => {
             const card = document.createElement('a');
             card.className = 'new-release-card';
@@ -431,8 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             card.querySelector('.new-release-play').addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                e.preventDefault(); e.stopPropagation();
                 handleCardPlayClick(album);
             });
             newReleasesBlock.appendChild(card);
@@ -441,9 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePlaybackUI();
     }
 
-    // ---------- ОБРАБОТЧИКИ КНОПОК PLAY/PAUSE ----------
+    // ---------- ОБРАБОТЧИК КНОПКИ PLAY КАРТОЧКИ РЕЛИЗА ----------
     function handleCardPlayClick(album) {
         const isThisAlbum = currentAlbum
+            && !currentAlbum.isPlaylist
             && currentAlbum.title === album.title
             && currentAlbum.artist === album.artist
             && !isGlobalShuffle;
@@ -500,15 +542,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---------- ИСПОЛНИТЕЛЬ ГОДА ----------
     function renderArtistOfYear(data) {
         if (!data || !artistOfYearBlock) return;
-
         const trackInfo = data.track || {};
-        let album = null;
-        let track = null;
+        let album = null, track = null;
         if (trackInfo.file) {
             album = allAlbums.find(a => a.tracks.some(t => t.file === trackInfo.file));
             if (album) track = album.tracks.find(t => t.file === trackInfo.file);
         }
-
         const trackCover = trackInfo.cover || (track && track.cover) || (album && album.cover) || 'placeholder.jpg';
         const trackTitle = trackInfo.title || (track && track.title) || 'Неизвестный трек';
         const trackArtist = trackInfo.artist || (album && album.artist) || data.name;
@@ -525,9 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="aoy-track-cover-wrapper">
                         <img class="aoy-track-cover" src="photo/${trackCover}" alt="" onerror="this.src='photo/placeholder.jpg'">
                         <div class="aoy-track-play">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="6,3 20,12 6,21"/>
-                            </svg>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
                         </div>
                     </div>
                     <div class="aoy-track-info">
@@ -551,17 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (trackInfo.file) {
                 stopGlobalShuffle();
                 currentAlbum = {
-                    artist: trackArtist,
-                    cover: trackCover,
-                    title: 'Исполнитель года',
-                    tracks: [{
-                        file: trackInfo.file,
-                        title: trackTitle,
-                        artist: trackArtist,
-                        cover: trackCover,
-                        duration: trackInfo.duration || '0:00',
-                        plays: trackInfo.plays || ''
-                    }]
+                    artist: trackArtist, cover: trackCover, title: 'Исполнитель года',
+                    tracks: [{ file: trackInfo.file, title: trackTitle, artist: trackArtist, cover: trackCover,
+                        duration: trackInfo.duration || '0:00', plays: trackInfo.plays || '' }]
                 };
                 currentTrackIndex = 0;
                 loadAndPlay(currentAlbum.tracks[0]);
@@ -574,17 +603,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const allSlides = document.querySelectorAll('.carousel-slide');
         const visibleSlides = Array.from(allSlides).filter(s => s.style.display !== 'none');
         if (visibleSlides.length === 0) return;
-
         const total = allSlides.length;
         if (index < 0) index = total - 1;
         if (index >= total) index = 0;
-
         let attempts = 0;
         while (allSlides[index].style.display === 'none' && attempts < total) {
             index = (index + 1) % total;
             attempts++;
         }
-
         currentSlide = index;
         carouselTrack.style.transform = `translateX(-${index * 100}%)`;
         document.querySelectorAll('#carousel-dots .dot').forEach((dot, i) => {
@@ -620,25 +646,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ---------- РЕСАЙЗ ПАНЕЛИ ТЕКСТА ----------
+    // ---------- РЕСАЙЗ ----------
     (function initLyricsResize() {
         const resizer = document.getElementById('lyrics-resizer');
         if (!resizer) return;
-
         const BASE_WIDTH = 350;
         const MIN_WIDTH = Math.round(BASE_WIDTH * 0.8);
         const MAX_WIDTH = Math.round(BASE_WIDTH * 1.5);
         const LS_KEY = 'fartify_lyrics_width';
-
         let saved = parseInt(localStorage.getItem(LS_KEY), 10);
         if (isNaN(saved)) saved = BASE_WIDTH;
         saved = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, saved));
-
-        function applyWidth(w) {
-            document.documentElement.style.setProperty('--lyrics-width', w + 'px');
-        }
+        function applyWidth(w) { document.documentElement.style.setProperty('--lyrics-width', w + 'px'); }
         applyWidth(saved);
-
         let isDragging = false, startX = 0, startWidth = 0;
         function getCurrentWidth() {
             const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--lyrics-width'), 10);
@@ -700,7 +720,6 @@ document.addEventListener('DOMContentLoaded', () => {
         allAlbums = albumsData;
         artistsMap = {};
         artistsData.forEach(a => { artistsMap[a.name] = a; });
-
         texts = {};
         textData.forEach(t => { texts[t.file] = t.text; });
         trackCovers = {};
@@ -758,15 +777,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const pl = autoPlaylists.find(p => p.id === plId);
             if (pl) openAutoPlaylistModal(pl);
         } else {
-    modal.classList.add('hidden');
-    openedModalAlbum = null;
-    playlistModal.classList.add('hidden');
-    artistPage.classList.add('hidden');
-    mainContent.classList.remove('hidden');
-    renderRecent();
-    updatePlaybackUI();
-    callFitAfterRender();
-}
+            modal.classList.add('hidden');
+            openedModalAlbum = null;
+            playlistModal.classList.add('hidden');
+            openedPlaylistTitle = null;
+            artistPage.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+            renderRecent();
+            updatePlaybackUI();
+            callFitAfterRender();
+        }
     }
 
     document.addEventListener('click', function(e) {
@@ -780,16 +800,14 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const newPath = url.pathname.replace(/\/$/, '') || '/';
         if (newPath === window.location.pathname) return;
-
         previousPath = window.location.pathname;
-
         window.history.pushState({}, '', newPath);
         handleRouting();
     });
 
     window.addEventListener('popstate', handleRouting);
 
-    // ---------- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ----------
+    // ---------- ВСПОМОГАТЕЛЬНЫЕ ----------
     function getLatestAlbumCover(artistName) {
         const artistAlbums = allAlbums.filter(a => a.artist === artistName);
         if (artistAlbums.length === 0) return 'placeholder.jpg';
@@ -847,7 +865,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return latestCover || 'placeholder.jpg';
     }
 
-    // ========== ИЗБРАННОЕ ==========
+    // ---------- ИЗБРАННОЕ ----------
     function loadFavorites() {
         const stored = localStorage.getItem('favorites');
         if (stored) { try { favorites = JSON.parse(stored); } catch (e) { favorites = []; } }
@@ -855,9 +873,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function saveFavorites() { localStorage.setItem('favorites', JSON.stringify(favorites)); }
     function isFavorite(track) {
-        return favorites.some(fav =>
-            fav.file === track.file && fav.artist === track.artist && fav.title === track.title
-        );
+        return favorites.some(fav => fav.file === track.file && fav.artist === track.artist && fav.title === track.title);
     }
     function addFavorite(track) {
         if (!isFavorite(track)) {
@@ -872,9 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     function removeFavorite(track) {
-        favorites = favorites.filter(fav =>
-            !(fav.file === track.file && fav.artist === track.artist && fav.title === track.title)
-        );
+        favorites = favorites.filter(fav => !(fav.file === track.file && fav.artist === track.artist && fav.title === track.title));
         saveFavorites();
     }
     function toggleFavorite(track) {
@@ -890,10 +904,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (currentAlbum && currentAlbum.tracks[currentTrackIndex]?.file === track.file) {
             playerFavBtn.classList.toggle('active', isFav);
+            updatePlayerHeartFill(isFav);
         }
     }
 
-    // ========== ДЕДУПЛИКАЦИЯ ДЛЯ АРТИСТА ==========
+    function updatePlayerHeartFill(isFav) {
+        const path = playerFavBtn.querySelector('path');
+        if (path) path.setAttribute('fill', isFav ? 'currentColor' : 'none');
+    }
+
+    // ---------- ДЕДУПЛИКАЦИЯ ----------
     function getArtistDeduplicatedStats(artistName) {
         const artistAlbums = allAlbums.filter(album => album.artist === artistName);
         const trackMap = new Map();
@@ -902,10 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const file = track.file;
                 const plays = parseInt(track.plays?.replace(/\s/g, '')) || 0;
                 if (!trackMap.has(file)) {
-                    trackMap.set(file, {
-                        file: file, title: track.title, artist: artistName, plays: plays,
-                        duration: track.duration, cover: null, albumDate: album.date
-                    });
+                    trackMap.set(file, { file, title: track.title, artist: artistName, plays, duration: track.duration, cover: null, albumDate: album.date });
                 } else {
                     const existing = trackMap.get(file);
                     if (plays > existing.plays) {
@@ -921,13 +938,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return { totalPlays, topTracks };
     }
 
-    // ========== ПОСТРОЕНИЕ ИСПОЛНИТЕЛЕЙ ==========
+    // ---------- ИСПОЛНИТЕЛИ ----------
     function buildUniqueArtists(albums) {
         const artistStats = {};
         albums.forEach(album => {
-            if (!artistStats[album.artist]) {
-                artistStats[album.artist] = { totalPlays: 0, cover: album.cover };
-            }
+            if (!artistStats[album.artist]) artistStats[album.artist] = { totalPlays: 0, cover: album.cover };
             const { totalPlays } = getArtistDeduplicatedStats(album.artist);
             artistStats[album.artist].totalPlays = totalPlays;
         });
@@ -964,22 +979,58 @@ document.addEventListener('DOMContentLoaded', () => {
         callFitAfterRender();
     }
 
-    // ========== ПЛЕЙЛИСТ ИЗБРАННОЕ ==========
+    // ---------- ПЛЕЙЛИСТ ИЗБРАННОЕ ----------
     function buildPlaylists() {
         const oldFavCard = document.querySelector('.playlist-card.favorites');
         if (oldFavCard) oldFavCard.remove();
         const playlistCard = document.createElement('a');
         playlistCard.className = 'playlist-card favorites';
         playlistCard.href = BASE_PATH + 'favorites';
+        playlistCard.dataset.playlistTitle = 'Избранное';
         playlistCard.innerHTML = `
             <img src="photo/favorites.png" alt="Избранное" onerror="this.src='photo/placeholder.jpg'">
+            <button class="playlist-play-btn" title="Играть">${getPlaySvg(20)}</button>
             <div class="playlist-name">Избранное</div>
             <div class="playlist-track-count">${favorites.length} треков</div>
         `;
+        playlistCard.querySelector('.playlist-play-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const tracks = favorites.map(fav => ({
+                file: fav.file, title: fav.title, artist: fav.artist, cover: fav.cover,
+                albumTitle: fav.albumTitle, duration: fav.duration, dateAdded: fav.dateAdded, plays: fav.plays || ''
+            }));
+            if (tracks.length === 0) return;
+            handlePlaylistPlayClick('Избранное', tracks);
+        });
         playlistsGrid.insertBefore(playlistCard, playlistsGrid.firstChild);
+        updatePlaybackUI();
     }
 
-    // ========== АВТОМАТИЧЕСКИЕ ПЛЕЙЛИСТЫ ==========
+    // ---------- ОБРАБОТЧИК PLAY ПЛЕЙЛИСТА (карточка) ----------
+    function handlePlaylistPlayClick(playlistTitle, tracks) {
+        const isThisPlaylist = currentAlbum
+            && currentAlbum.isPlaylist
+            && currentAlbum.playlistTitle === playlistTitle
+            && !isGlobalShuffle;
+        if (isThisPlaylist) {
+            if (audio.paused) audio.play();
+            else audio.pause();
+        } else {
+            stopGlobalShuffle();
+            currentAlbum = {
+                artist: tracks[0]?.artist || 'Playlist',
+                cover: tracks[0]?.cover,
+                title: playlistTitle,
+                tracks: tracks,
+                isPlaylist: true,
+                playlistTitle: playlistTitle
+            };
+            playTrackByIndex(0);
+        }
+    }
+
+    // ---------- АВТО-ПЛЕЙЛИСТЫ ----------
     async function getPlaylistMeta(playlistId) {
         try {
             const res = await fetch('playlist-covers.json');
@@ -1036,10 +1087,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const top50 = Array.from(uniqueMap.values())
             .sort((a, b) => parsePlays(b.plays) - parsePlays(a.plays))
             .slice(0, 50);
-        autoPlaylists.push({
-            id: 'chart', title: 'Fartify топ-50',
-            cover: 'photo/chart.png', tracks: top50
-        });
+        autoPlaylists.push({ id: 'chart', title: 'Fartify топ-50', cover: 'photo/chart.png', tracks: top50 });
         renderAutoPlaylists();
     }
 
@@ -1049,15 +1097,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('a');
             card.className = 'playlist-card auto-playlist';
             card.href = (pl.id === 'chart') ? BASE_PATH + 'chart' : BASE_PATH + 'playlist/' + pl.id;
+            card.dataset.playlistTitle = pl.title;
             card.innerHTML = `
                 <img src="${pl.cover}" alt="${pl.title}" onerror="this.src='photo/placeholder.jpg'">
+                <button class="playlist-play-btn" title="Играть">${getPlaySvg(20)}</button>
                 <div class="playlist-name">${pl.title}</div>
                 <div class="playlist-track-count">${pl.tracks.length} треков</div>
                 ${pl.tracks.length > 0 ? `<img class="playlist-mini-cover" src="photo/${pl.tracks[0].cover}" alt="" onerror="this.style.display='none'">` : ''}
             `;
+            card.querySelector('.playlist-play-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handlePlaylistPlayClick(pl.title, pl.tracks);
+            });
             playlistsGrid.appendChild(card);
         });
-        callFitAfterRender();
+        updatePlaybackUI();
     }
 
     // ---------- МОДАЛКА ПЛЕЙЛИСТА ----------
@@ -1073,6 +1128,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.location.pathname !== plPath) {
             window.history.pushState({}, '', plPath);
         }
+
+        openedPlaylistTitle = title;
+        openedPlaylistTracks = tracks;
 
         playlistModalCover.src = cover || 'photo/placeholder.jpg';
         playlistModalCover.onerror = () => { playlistModalCover.src = 'photo/placeholder.jpg'; };
@@ -1116,16 +1174,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 const favBtn = row.querySelector('.favorite-btn');
                 favBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(track); });
             }
+
             row.addEventListener('click', () => {
-                if (tracks.length > 0) {
-                    stopGlobalShuffle();
-                    currentAlbum = { artist: track.artist, cover: track.cover, title: title, tracks: tracks };
-                    const idx = currentAlbum.tracks.findIndex(t => t.file === track.file && t.title === track.title);
-                    if (idx !== -1) playTrackByIndex(idx);
+                if (tracks.length === 0) return;
+                stopGlobalShuffle();
+                // Если это тот же трек из того же плейлиста — toggle play/pause
+                const isSame = currentAlbum
+                    && currentAlbum.isPlaylist
+                    && currentAlbum.playlistTitle === title
+                    && currentTrackIndex === index
+                    && !isGlobalShuffle;
+                if (isSame) {
+                    if (audio.paused) audio.play();
+                    else audio.pause();
+                    return;
                 }
-                playlistModal.classList.add('hidden');
-                restorePreviousUrl();
+                currentAlbum = {
+                    artist: track.artist,
+                    cover: track.cover,
+                    title: title,
+                    tracks: tracks,
+                    isPlaylist: true,
+                    playlistTitle: title
+                };
+                playTrackByIndex(index);
+                // Модалка НЕ закрывается
             });
+
             list.appendChild(row);
         });
 
@@ -1141,15 +1216,32 @@ document.addEventListener('DOMContentLoaded', () => {
             el.style.gridTemplateColumns = columns;
         });
 
+        // Кнопка Play в шапке — toggle play/pause для плейлиста
         playlistPlayBtn.onclick = () => {
             if (tracks.length === 0) return;
-            stopGlobalShuffle();
-            currentAlbum = { artist: tracks[0].artist, cover: tracks[0].cover, title: title, tracks: tracks };
-            playTrackByIndex(0);
-            playlistModal.classList.add('hidden');
-            restorePreviousUrl();
+            const isThis = currentAlbum
+                && currentAlbum.isPlaylist
+                && currentAlbum.playlistTitle === title
+                && !isGlobalShuffle;
+            if (isThis) {
+                if (audio.paused) audio.play();
+                else audio.pause();
+            } else {
+                stopGlobalShuffle();
+                currentAlbum = {
+                    artist: tracks[0].artist,
+                    cover: tracks[0].cover,
+                    title: title,
+                    tracks: tracks,
+                    isPlaylist: true,
+                    playlistTitle: title
+                };
+                playTrackByIndex(0);
+            }
         };
+
         playlistModal.classList.remove('hidden');
+        updatePlaybackUI();
     }
 
     function openPlaylistModal() {
@@ -1178,7 +1270,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closePlaylistAndRestoreUrl() {
         playlistModal.classList.add('hidden');
+        openedPlaylistTitle = null;
         restorePreviousUrl();
+        updatePlaybackUI();
     }
 
     closePlaylistBtn.addEventListener('click', closePlaylistAndRestoreUrl);
@@ -1186,7 +1280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === playlistModal) closePlaylistAndRestoreUrl();
     });
 
-    // ---------- ОТРИСОВКА АЛЬБОМОВ (Для вас) ----------
+    // ---------- ОТРИСОВКА АЛЬБОМОВ ----------
     function renderAlbums(albums) {
         albumsGrid.innerHTML = '';
         albums.forEach(album => {
@@ -1249,10 +1343,12 @@ document.addEventListener('DOMContentLoaded', () => {
         showCriticsForAlbum(album.title);
 
         modalPlayBtn.onclick = () => {
-            if (openedModalAlbum && currentAlbum
+            const isThisAlbum = currentAlbum
+                && !currentAlbum.isPlaylist
                 && currentAlbum.title === openedModalAlbum.title
                 && currentAlbum.artist === openedModalAlbum.artist
-                && !isGlobalShuffle) {
+                && !isGlobalShuffle;
+            if (isThisAlbum) {
                 if (audio.paused) audio.play();
                 else audio.pause();
             } else {
@@ -1291,8 +1387,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             row.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Если это тот же трек — toggle play/pause
                 const isSame = currentAlbum
+                    && !currentAlbum.isPlaylist
                     && currentAlbum.title === album.title
                     && currentAlbum.artist === album.artist
                     && currentTrackIndex === index
@@ -1333,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === modal) closeAlbumAndRestoreUrl();
     });
 
-    // ---------- ПРОИГРЫВАНИЕ ТРЕКА ----------
+    // ---------- ВОСПРОИЗВЕДЕНИЕ ----------
     function playTrackByIndex(index) {
         if (!currentAlbum) return;
         currentTrackIndex = index;
@@ -1357,6 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         const isFav = isFavorite(trackWithMeta);
         playerFavBtn.classList.toggle('active', isFav);
+        updatePlayerHeartFill(isFav);
         playerFavBtn.onclick = () => toggleFavorite(trackWithMeta);
         audio.play().catch(e => console.warn('Автовоспроизведение:', e));
         updateLyricsPanel(track);
@@ -1375,7 +1472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ---------- ПАНЕЛЬ ТЕКСТА / КАРАОКЕ ----------
+    // ---------- ТЕКСТ / КАРАОКЕ ----------
     function updateLyricsPanel(track) {
         const coverFile = track.cover || getTrackCover(track.file, allAlbums.filter(a => a.artist === track.artist));
         lyricsCover.src = `photo/${coverFile}`;
@@ -1454,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else { playIcon.style.display = 'block'; pauseIcon.style.display = 'none'; }
     }
 
-    // ---------- ГЛОБАЛЬНЫЙ ПЛЕЙЛИСТ ----------
+    // ---------- РЕКОМЕНДАЦИИ ----------
     function buildGlobalPlaylist() {
         const allTracks = [];
         allAlbums.forEach(album => {
@@ -1508,7 +1605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playGlobalTrack();
     }
 
-    // ---------- УПРАВЛЕНИЕ ПЛЕЕРОМ ----------
+    // ---------- УПРАВЛЕНИЕ ----------
     function togglePlay() {
         if (!audio.src) return;
         if (audio.paused) { audio.play(); updatePlayPauseIcon(true); }
@@ -1577,7 +1674,7 @@ document.addEventListener('DOMContentLoaded', () => {
     repeatBtn.addEventListener('click', toggleRepeat);
     updateRepeatIcon();
 
-    // ---------- ПРОГРЕСС И ВРЕМЯ ----------
+    // ---------- ПРОГРЕСС ----------
     audio.addEventListener('timeupdate', () => {
         if (!audio.duration) return;
         const percent = (audio.currentTime / audio.duration) * 100;
@@ -1656,7 +1753,7 @@ document.addEventListener('DOMContentLoaded', () => {
         imageModal.classList.remove('hidden');
     });
 
-    // ========== MEDIA KEYS ==========
+    // ---------- MEDIA KEYS ----------
     document.addEventListener('keydown', (e) => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
         if (e.code === 'MediaPlayPause') { e.preventDefault(); togglePlay(); }
@@ -1664,102 +1761,70 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (e.code === 'MediaTrackPrevious') { e.preventDefault(); prevTrack(); }
     });
     if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play', () => {
-            if (audio.paused) { audio.play(); updatePlayPauseIcon(true); }
-        });
-        navigator.mediaSession.setActionHandler('pause', () => {
-            if (!audio.paused) { audio.pause(); updatePlayPauseIcon(false); }
-        });
+        navigator.mediaSession.setActionHandler('play', () => { if (audio.paused) { audio.play(); updatePlayPauseIcon(true); } });
+        navigator.mediaSession.setActionHandler('pause', () => { if (!audio.paused) { audio.pause(); updatePlayPauseIcon(false); } });
         navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
         navigator.mediaSession.setActionHandler('nexttrack', () => nextTrack());
     }
 
-    // ========== ШРИФТ НА КАРТОЧКАХ ==========
+    // ---------- АВТОШРИФТ ----------
     function fitTitleFontSize() {
-    const titles = document.querySelectorAll(
-        '.album-card .title, ' +
-        '.artist-card .artist-name, ' +
-        '.playlist-card .playlist-name, ' +
-        '.new-release-card .new-release-title'
-    );
+        const titles = document.querySelectorAll(
+            '.album-card .title, .artist-card .artist-name, ' +
+            '.playlist-card .playlist-name, .new-release-card .new-release-title'
+        );
+        titles.forEach(title => { title.style.fontSize = ''; });
+        void document.body.offsetHeight;
 
-    // Сброс предыдущих inline-размеров
-    titles.forEach(title => { title.style.fontSize = ''; });
-    void document.body.offsetHeight;
+        const measurer = document.createElement('span');
+        measurer.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;pointer-events:none;top:-9999px;left:-9999px;`;
+        document.body.appendChild(measurer);
 
-    // Создаём скрытый измеритель один раз
-    const measurer = document.createElement('span');
-    measurer.style.cssText = `
-        position: absolute;
-        visibility: hidden;
-        white-space: nowrap;
-        pointer-events: none;
-        top: -9999px;
-        left: -9999px;
-    `;
-    document.body.appendChild(measurer);
+        titles.forEach(title => {
+            const parent = title.parentElement;
+            if (!parent || parent.clientWidth === 0) return;
+            const cs = getComputedStyle(title);
+            const parentCs = getComputedStyle(parent);
+            const baseFontSize = parseFloat(cs.fontSize) || 16;
+            const padL = parseFloat(parentCs.paddingLeft) || 0;
+            const padR = parseFloat(parentCs.paddingRight) || 0;
+            const marL = parseFloat(cs.marginLeft) || 0;
+            const marR = parseFloat(cs.marginRight) || 0;
+            const maxWidth = Math.floor(parent.clientWidth - padL - padR - marL - marR);
+            if (maxWidth <= 0) return;
+            measurer.style.fontFamily = cs.fontFamily;
+            measurer.style.fontWeight = cs.fontWeight;
+            measurer.style.letterSpacing = cs.letterSpacing;
+            measurer.textContent = title.textContent;
+            const MIN = 9;
+            let fs = baseFontSize;
+            while (fs > MIN) {
+                measurer.style.fontSize = fs + 'px';
+                if (measurer.getBoundingClientRect().width <= maxWidth) break;
+                fs -= 0.5;
+            }
+            title.style.fontSize = fs + 'px';
+        });
 
-    titles.forEach(title => {
-        const parent = title.parentElement;
-        if (!parent || parent.clientWidth === 0) return;
-
-        const cs = getComputedStyle(title);
-        const parentCs = getComputedStyle(parent);
-
-        const baseFontSize = parseFloat(cs.fontSize) || 16;
-        const fontFamily = cs.fontFamily;
-        const fontWeight = cs.fontWeight;
-        const letterSpacing = cs.letterSpacing;
-
-        const padLeft = parseFloat(parentCs.paddingLeft) || 0;
-        const padRight = parseFloat(parentCs.paddingRight) || 0;
-        const marLeft = parseFloat(cs.marginLeft) || 0;
-        const marRight = parseFloat(cs.marginRight) || 0;
-
-        const maxWidth = Math.floor(parent.clientWidth - padLeft - padRight - marLeft - marRight);
-        if (maxWidth <= 0) return;
-
-        // Настраиваем измеритель
-        measurer.style.fontFamily = fontFamily;
-        measurer.style.fontWeight = fontWeight;
-        measurer.style.letterSpacing = letterSpacing;
-        measurer.textContent = title.textContent;
-
-        const MIN_SIZE = 9;
-        let fontSize = baseFontSize;
-
-        while (fontSize > MIN_SIZE) {
-            measurer.style.fontSize = fontSize + 'px';
-            const w = measurer.getBoundingClientRect().width;
-            if (w <= maxWidth) break;
-            fontSize -= 0.5;
-        }
-
-        title.style.fontSize = fontSize + 'px';
-    });
-
-    document.body.removeChild(measurer);
-}
+        document.body.removeChild(measurer);
+    }
 
     function callFitAfterRender() {
-    // Первая попытка — на следующем кадре
-    requestAnimationFrame(() => {
-        fitTitleFontSize();
-        // Вторая попытка — с небольшой задержкой, если первая не застала отрисовку
-        setTimeout(fitTitleFontSize, 100);
-    });
-}
+        requestAnimationFrame(() => {
+            fitTitleFontSize();
+            setTimeout(fitTitleFontSize, 100);
+        });
+    }
+    window.addEventListener('resize', () => { fitTitleFontSize(); });
 
-    // ========== СТРАНИЦА АРТИСТА ==========
+    // ---------- СТРАНИЦА АРТИСТА ----------
     function showArtistPage(artistName) {
         const artistPath = BASE_PATH + 'Artist/' + encodeURIComponent(artistName);
         if (window.location.pathname !== artistPath) {
             window.history.pushState({}, '', artistPath);
         }
-
         const artistAlbums = allAlbums.filter(album => album.artist === artistName);
         if (artistAlbums.length === 0) return;
-
         const artistEntry = artistsMap[artistName];
         const avatarFile = artistEntry ? artistEntry.avatar : getLatestAlbumCover(artistName);
         artistAvatar.src = `photo/${avatarFile}`;
@@ -1811,10 +1876,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }))
             );
             if (allTracks.length > 0) {
-                currentAlbum = {
-                    artist: artistName, cover: allTracks[0].cover,
-                    title: 'Все треки ' + artistName, tracks: allTracks
-                };
+                currentAlbum = { artist: artistName, cover: allTracks[0].cover, title: 'Все треки ' + artistName, tracks: allTracks };
                 playTrackByIndex(0);
             }
         };
@@ -1850,17 +1912,16 @@ document.addEventListener('DOMContentLoaded', () => {
         mainContent.classList.add('hidden');
         artistPage.classList.remove('hidden');
         window.scrollTo(0, 0);
+        updatePlaybackUI();
     }
 
-    // ---------- БАННЕР РЕКОМЕНДАЦИЙ ----------
+    // ---------- БАННЕР ----------
     recommendBanner.addEventListener('click', (e) => {
         if (e.target !== recommendPlayBtn && !recommendPlayBtn.contains(e.target)) {
             if (isGlobalShuffle) {
                 if (audio.paused) audio.play();
                 else audio.pause();
-            } else {
-                startGlobalShuffle();
-            }
+            } else startGlobalShuffle();
         }
     });
     recommendPlayBtn.addEventListener('click', (e) => {
@@ -1868,12 +1929,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isGlobalShuffle) {
             if (audio.paused) audio.play();
             else audio.pause();
-        } else {
-            startGlobalShuffle();
-        }
+        } else startGlobalShuffle();
     });
 
-    // ---------- ОБРАБОТЧИКИ ПЛЕЕРА ----------
+    // ---------- ОБРАБОТЧИКИ ----------
     playerArtist.addEventListener('click', () => {
         if (!currentAlbum) return;
         stopGlobalShuffle();
@@ -1885,11 +1944,11 @@ document.addEventListener('DOMContentLoaded', () => {
         imageModal.classList.remove('hidden');
     });
     backBtn.addEventListener('click', () => {
-    window.history.pushState({}, '', BASE_PATH);
-    artistPage.classList.add('hidden');
-    mainContent.classList.remove('hidden');
-    callFitAfterRender();
-});
+        window.history.pushState({}, '', BASE_PATH);
+        artistPage.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+        callFitAfterRender();
+    });
 
     if (closeImageModal) closeImageModal.addEventListener('click', () => imageModal.classList.add('hidden'));
     window.addEventListener('click', (e) => {

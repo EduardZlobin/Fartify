@@ -37,8 +37,23 @@
     <div id="bg-layer2" class="bg-layer" style="opacity: 0;"></div>
 
     <header>
-        <h1></h1>
-    </header>
+    <div class="search-wrapper">
+        <div class="search-input-wrap">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input id="search-input" type="text" placeholder="Что хочешь включить?" autocomplete="off" spellcheck="false">
+            <button id="search-clear" class="search-clear hidden" type="button" title="Очистить">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div id="search-results" class="search-results hidden"></div>
+    </div>
+</header>
 
     <main>
         <div id="main-content">

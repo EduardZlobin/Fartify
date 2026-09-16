@@ -20,8 +20,8 @@ body {
     transition: margin-right 0.3s ease;
 }
 
-body.lyrics-open {
-    margin-right: var(--lyrics-width);
+body.lyrics-open main {
+    margin-right: var(--lyrics-width, 350px);
 }
 
 ::-webkit-scrollbar { width: 8px; height: 6px; }

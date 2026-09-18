@@ -6209,3 +6209,54 @@ body.lyrics-open #main-content {
     .eq-slider { width: 102px; }
     .eq-gain-info { display: none; }
 }
+
+/* ===========================================
+   EQ ICON — анимация «эквалайзерных полосок»
+   =========================================== */
+
+.eq-btn svg line {
+    /* Критично: transform-box делает каждую линию
+       независимой осью масштабирования вокруг СВОЕГО центра,
+       а не центра всего SVG. Без этого линии «улетают». */
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 0.2s ease;
+}
+
+/* Пульсация, когда EQ включён и что-то реально подкручено */
+.eq-btn.active svg line {
+    animation: eqBarPulse 1.4s ease-in-out infinite;
+}
+
+/* Разные задержки → волна, а не синхронное дрыганье */
+.eq-btn.active svg line:nth-child(1) { animation-delay: 0.00s; }
+.eq-btn.active svg line:nth-child(2) { animation-delay: 0.10s; }
+.eq-btn.active svg line:nth-child(3) { animation-delay: 0.20s; }
+.eq-btn.active svg line:nth-child(4) { animation-delay: 0.15s; }
+.eq-btn.active svg line:nth-child(5) { animation-delay: 0.05s; }
+
+@keyframes eqBarPulse {
+    0%, 100% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scaleY(1.35);
+        opacity: 0.8;
+    }
+}
+
+/* Лёгкое свечение иконки, когда активна */
+.eq-btn.active svg {
+    filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.55));
+}
+
+/* При hover на неактивной — лёгкий «отклик», без полной анимации */
+.eq-btn:not(.active):hover svg line {
+    animation: eqBarPulse 1.4s ease-in-out infinite;
+}
+.eq-btn:not(.active):hover svg line:nth-child(1) { animation-delay: 0.00s; }
+.eq-btn:not(.active):hover svg line:nth-child(2) { animation-delay: 0.10s; }
+.eq-btn:not(.active):hover svg line:nth-child(3) { animation-delay: 0.20s; }
+.eq-btn:not(.active):hover svg line:nth-child(4) { animation-delay: 0.15s; }
+.eq-btn:not(.active):hover svg line:nth-child(5) { animation-delay: 0.05s; }

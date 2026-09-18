@@ -37,83 +37,85 @@
     <div id="bg-layer2" class="bg-layer" style="opacity: 0;"></div>
 
     <header>
-    <div class="search-wrapper">
-        <div class="search-input-wrap">
-            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            <input id="search-input" type="text" placeholder="Что хочешь включить?" autocomplete="off" spellcheck="false">
-            <button id="search-clear" class="search-clear hidden" type="button" title="Очистить">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+        <div class="search-wrapper">
+            <div class="search-input-wrap">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-            </button>
-        </div>
-        <div id="search-results" class="search-results hidden"></div>
-    </div>
-</header>
-
-    <main>
-        <div id="main-content">
-<!-- Карусель баннеров -->
-<div id="hero-carousel" class="hero-carousel">
-    <div class="carousel-track" id="carousel-track">
-        <!-- Слайд 1: Новинки -->
-        <div class="carousel-slide">
-            <div id="new-releases-block" class="new-releases-block"></div>
-        </div>
-
-        <!-- Слайд 2: Исполнитель года -->
-        <div class="carousel-slide">
-            <div id="artist-of-year" class="artist-of-year"></div>
-        </div>
-
-        <!-- Слайд 3: Баннер рекомендаций -->
-        <div class="carousel-slide">
-            <div id="recommendation-banner" class="recommendation-banner">
-                <img src="photo/banner.png" alt="Рекомендации" class="banner-img" onerror="this.style.display='none'">
-                <button id="recommend-play-btn" class="recommend-play-btn">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="6,3 20,12 6,21"/>
+                <input id="search-input" type="text" placeholder="Что хочешь включить?" autocomplete="off" spellcheck="false">
+                <button id="search-clear" class="search-clear hidden" type="button" title="Очистить">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
             </div>
+            <div id="search-results" class="search-results hidden"></div>
         </div>
-    </div>
+    </header>
 
-    <div class="carousel-dots" id="carousel-dots">
-        <span class="dot active" data-index="0"></span>
-        <span class="dot" data-index="1"></span>
-        <span class="dot" data-index="2"></span>
-    </div>
-</div>
+    <main>
+        <div id="main-content">
+
+            <!-- Карусель баннеров -->
+            <div id="hero-carousel" class="hero-carousel">
+                <div class="carousel-track" id="carousel-track">
+                    <!-- Слайд 1: Новинки -->
+                    <div class="carousel-slide">
+                        <div id="new-releases-block" class="new-releases-block"></div>
+                    </div>
+
+                    <!-- Слайд 2: Исполнитель года -->
+                    <div class="carousel-slide">
+                        <div id="artist-of-year" class="artist-of-year"></div>
+                    </div>
+
+                    <!-- Слайд 3: Баннер рекомендаций -->
+                    <div class="carousel-slide">
+                        <div id="recommendation-banner" class="recommendation-banner">
+                            <img src="photo/banner.png" alt="Рекомендации" class="banner-img" onerror="this.style.display='none'">
+                            <button id="recommend-play-btn" class="recommend-play-btn">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                                    <polygon points="6,3 20,12 6,21"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-dots" id="carousel-dots">
+                    <span class="dot active" data-index="0"></span>
+                    <span class="dot" data-index="1"></span>
+                    <span class="dot" data-index="2"></span>
+                </div>
+            </div>
 
             <!-- Плейлисты -->
-<section id="playlists-section" class="section scrollable-section">
-    <h2 class="section-title">Плейлисты</h2>
-    <div id="playlists-grid" class="playlists-grid horizontal-grid"></div>
-</section>
+            <section id="playlists-section" class="section scrollable-section">
+                <h2 class="section-title">Плейлисты</h2>
+                <div id="playlists-grid" class="playlists-grid horizontal-grid"></div>
+            </section>
 
-<!-- Исполнители -->
-<section id="artists-section" class="section scrollable-section">
-    <h2 class="section-title">Исполнители</h2>
-    <div id="artists-grid" class="artists-grid horizontal-grid"></div>
-</section>
+            <!-- Исполнители -->
+            <section id="artists-section" class="section scrollable-section">
+                <h2 class="section-title">Исполнители</h2>
+                <div id="artists-grid" class="artists-grid horizontal-grid"></div>
+            </section>
 
-<!-- Недавно прослушано -->
-<section id="recent-section" class="section scrollable-section" style="display: none;">
-    <h2 class="section-title">Недавно прослушано</h2>
-    <div id="recent-grid" class="albums-grid horizontal-grid"></div>
-</section>
+            <!-- Недавно прослушано -->
+            <section id="recent-section" class="section scrollable-section" style="display: none;">
+                <h2 class="section-title">Недавно прослушано</h2>
+                <div id="recent-grid" class="albums-grid horizontal-grid"></div>
+            </section>
 
             <!-- Для вас -->
             <section id="for-you-section" class="section">
                 <h2 class="section-title">Для вас</h2>
                 <div id="albums-grid" class="albums-grid"></div>
             </section>
-        </div>
+
+        </div><!-- /#main-content -->
 
         <!-- Страница исполнителя -->
         <div id="artist-page" class="artist-page hidden">
@@ -241,59 +243,102 @@
         </div>
     </main>
 
-    <!-- Панель текста -->
+    <!-- Панель «Сейчас играет» -->
     <div id="lyrics-panel" class="lyrics-panel">
         <div id="lyrics-resizer" class="lyrics-resizer"></div>
         <button id="lyrics-close-btn" class="lyrics-close-btn">&times;</button>
         <div class="lyrics-background"></div>
         <div class="lyrics-content">
+
+            <!-- Контекст -->
+            <div id="lyrics-context" class="lyrics-context">Сейчас играет</div>
+
+            <!-- Обложка -->
             <img id="lyrics-cover" src="" alt="Обложка" class="lyrics-cover">
-            <div id="lyrics-text" class="lyrics-text"></div>
+
+            <!-- Название и исполнитель -->
+            <div id="lyrics-now-title" class="lyrics-now-title">Название трека</div>
+            <div id="lyrics-now-artist" class="lyrics-now-artist">Исполнитель</div>
+
+            <!-- Блок текста (превью) -->
+            <div class="lyrics-text-section">
+                <div class="lyrics-section-head">
+                    <div class="lyrics-section-title">Текст</div>
+                    <button id="lyrics-expand-btn" class="lyrics-expand-btn" type="button">Развернуть</button>
+                </div>
+                <div id="lyrics-text-preview" class="lyrics-text-preview" data-lyrics-scroll>
+                    <div id="lyrics-text" class="lyrics-text"></div>
+                </div>
+            </div>
+
+            <!-- Очередь -->
+            <div class="queue-section">
+                <div class="queue-header">
+                    <span class="queue-section-title">Далее в очереди</span>
+                    <button id="queue-toggle" class="queue-toggle" type="button">Развернуть</button>
+                </div>
+                <div id="queue-next" class="queue-next"></div>
+                <div id="queue-full" class="queue-full hidden"></div>
+            </div>
+
+            <!-- Оверлей полного текста -->
+            <div id="lyrics-full-overlay" class="lyrics-full-overlay hidden">
+                <div id="lyrics-full-bg" class="lyrics-full-bg"></div>
+                <button id="lyrics-full-close" class="lyrics-full-close" type="button">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Свернуть
+                </button>
+                <div id="lyrics-full-content" class="lyrics-full-content" data-lyrics-scroll>
+                    <!-- #lyrics-text будет перемещён сюда в JS -->
+                </div>
+            </div>
+
         </div>
     </div>
 
     <!-- Модальное окно альбома -->
     <div id="album-modal" class="modal hidden">
         <div class="modal-content">
-    <span class="close">&times;</span>
-    <div class="modal-main">
-        <div class="modal-header">
-            <img id="modal-cover" src="" alt="Обложка">
-            <div class="modal-info">
-                <span id="modal-type" class="modal-type-label">Тип</span>
-                <h2 id="modal-title">Название</h2>
-                <div id="modal-meta" class="modal-meta"></div>
-                <button id="modal-play-btn" class="modal-play-btn">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="6,3 20,12 6,21"/>
-                    </svg>
-                </button>
+            <span class="close">&times;</span>
+            <div class="modal-main">
+                <div class="modal-header">
+                    <img id="modal-cover" src="" alt="Обложка">
+                    <div class="modal-info">
+                        <span id="modal-type" class="modal-type-label">Тип</span>
+                        <h2 id="modal-title">Название</h2>
+                        <div id="modal-meta" class="modal-meta"></div>
+                        <button id="modal-play-btn" class="modal-play-btn">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="6,3 20,12 6,21"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span id="modal-rating" class="modal-rating">0/10</span>
+                </div>
+                <div class="modal-tracks-table">
+                    <div class="tracks-header">
+                        <span>#</span>
+                        <span>Название</span>
+                        <span>Прослушивания</span>
+                        <span>Длительность</span>
+                        <span></span>
+                    </div>
+                    <ul id="modal-tracks" class="tracks-list"></ul>
+                </div>
+                <div class="modal-footer">
+                    <span id="modal-footer-date"></span>
+                    <span id="modal-footer-label"></span>
+                </div>
             </div>
-            <!-- Оценка теперь здесь, справа от названия -->
-            <span id="modal-rating" class="modal-rating">0/10</span>
-        </div>
-        <div class="modal-tracks-table">
-            <div class="tracks-header">
-                <span>#</span>
-                <span>Название</span>
-                <span>Прослушивания</span>
-                <span>Длительность</span>
-                <span></span>
-            </div>
-            <ul id="modal-tracks" class="tracks-list"></ul>
-        </div>
-        <div class="modal-footer">
-            <span id="modal-footer-date"></span>
-            <span id="modal-footer-label"></span>
-        </div>
-    </div>
 
-    <!-- Панель отзывов (выезжает справа) -->
-    <div id="modal-critics" class="modal-critics hidden">
-        <h3>Отзывы лицензированных критиков</h3>
-        <ul id="modal-critics-list"></ul>
-    </div>
-</div>
+            <div id="modal-critics" class="modal-critics hidden">
+                <h3>Отзывы лицензированных критиков</h3>
+                <ul id="modal-critics-list"></ul>
+            </div>
+        </div>
     </div>
 
     <!-- Модальное окно плейлиста -->
@@ -335,17 +380,19 @@
             <img id="image-modal-img" src="" alt="Обложка">
         </div>
     </div>
-<!-- SVG-фильтр для экстремально медленного и сильного жидкого эффекта -->
-<svg style="position: absolute; width: 0; height: 0;">
-    <filter id="liquidFilter" x="-50%" y="-50%" width="9900%" height="9900%">
-        <feTurbulence id="turbulence" type="fractalNoise" baseFrequency="0.003 0.005" numOctaves="3" result="noise">
-            <animate attributeName="baseFrequency"
-                     values="0.003 0.005; 0.008 0.004; 0.005 0.009; 0.003 0.005"
-                     dur="40s" repeatCount="indefinite" />
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="220" xChannelSelector="R" yChannelSelector="G" />
-    </filter>
-</svg>
+
+    <!-- SVG-фильтр для жидкого эффекта фона текста -->
+    <svg style="position: absolute; width: 0; height: 0;">
+        <filter id="liquidFilter" x="-50%" y="-50%" width="9900%" height="9900%">
+            <feTurbulence id="turbulence" type="fractalNoise" baseFrequency="0.003 0.005" numOctaves="3" result="noise">
+                <animate attributeName="baseFrequency"
+                         values="0.003 0.005; 0.008 0.004; 0.005 0.009; 0.003 0.005"
+                         dur="40s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="220" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+
     <script src="script.js"></script>
 </body>
 </html>

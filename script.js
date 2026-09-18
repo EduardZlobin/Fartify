@@ -78,6 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const lyricsText = document.getElementById('lyrics-text');
     const lyricsBackground = document.querySelector('.lyrics-background');
     const lyricsCloseBtn = document.getElementById('lyrics-close-btn');
+    const lyricsContext = document.getElementById('lyrics-context');
+    const lyricsNowTitle = document.getElementById('lyrics-now-title');
+    const lyricsNowArtist = document.getElementById('lyrics-now-artist');
+    const lyricsExpandBtn = document.getElementById('lyrics-expand-btn');
+    const lyricsFullOverlay = document.getElementById('lyrics-full-overlay');
+    const lyricsFullClose = document.getElementById('lyrics-full-close');
+    const lyricsFullContent = document.getElementById('lyrics-full-content');
+    const queueNext = document.getElementById('queue-next');
+    const queueFull = document.getElementById('queue-full');
+    const queueToggle = document.getElementById('queue-toggle');
 
     const imageModal = document.getElementById('image-modal');
     const imageModalImg = document.getElementById('image-modal-img');
@@ -112,6 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let liveTexts = {};
     let currentLyricLines = [];
     let activeLyricIndex = -1;
+    let currentTrackMeta = null;
+    let shuffleQueue = [];
+    let shuffleQueuePosition = -1;
+    let isLyricsFullscreen = false;
+    let lyricsPreviewParent = null;
+    let queueExpanded = false;
 
     let currentSlide = 0;
     let carouselTimer = null;
@@ -128,6 +144,213 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ---------- БОКОВАЯ ПАНЕЛЬ: КОНТЕКСТ И ОЧЕРЕДЬ ----------
+    function getPlaybackSource() {
+        if (isGlobalShuffle) return 'Рекомендации';
+        if (!currentAlbum) return 'Ничего';
+
+        if (currentAlbum.isPlaylist) {
+            return currentAlbum.playlistTitle || currentAlbum.title || 'Плейлист';
+        }
+
+        if (typeof currentAlbum.title === 'string' && currentAlbum.title.startsWith('Все треки ')) {
+            return currentAlbum.title;
+        }
+
+        return currentAlbum.title || 'Релиз';
+    }
+
+    function updateLyricsNowPlaying(track) {
+        if (!track) {
+            if (lyricsContext) {
+                lyricsContext.textContent = 'Ничего';
+                lyricsContext.title = 'Ничего';
+            }
+            if (lyricsNowTitle) lyricsNowTitle.textContent = 'Название трека';
+            if (lyricsNowArtist) lyricsNowArtist.textContent = 'Исполнитель';
+            return;
+        }
+
+        const artist = track.artist || currentAlbum?.artist || 'Неизвестный исполнитель';
+        const source = getPlaybackSource();
+
+        if (lyricsContext) {
+            lyricsContext.textContent = source;
+            lyricsContext.title = source;
+        }
+        if (lyricsNowTitle) {
+            lyricsNowTitle.textContent = track.title || 'Без названия';
+            lyricsNowTitle.title = track.title || '';
+        }
+        if (lyricsNowArtist) {
+            lyricsNowArtist.textContent = artist;
+            lyricsNowArtist.dataset.artist = artist;
+            lyricsNowArtist.title = `Открыть профиль ${artist}`;
+        }
+    }
+
+    function resetShuffleQueue(startIndex = currentTrackIndex) {
+        if (!currentAlbum || !Array.isArray(currentAlbum.tracks) || currentAlbum.tracks.length === 0) {
+            shuffleQueue = [];
+            shuffleQueuePosition = -1;
+            return;
+        }
+
+        const allIndexes = currentAlbum.tracks.map((_, index) => index);
+        const rest = allIndexes.filter(index => index !== startIndex);
+        rest.sort(() => Math.random() - 0.5);
+        shuffleQueue = [startIndex, ...rest];
+        shuffleQueuePosition = 0;
+    }
+
+    function syncShuffleQueueToCurrent() {
+        if (!shuffle) return;
+        const pos = shuffleQueue.indexOf(currentTrackIndex);
+        if (pos === -1) resetShuffleQueue(currentTrackIndex);
+        else shuffleQueuePosition = pos;
+    }
+
+    function getQueueTracks(limit = 15) {
+        if (!currentAlbum || !Array.isArray(currentAlbum.tracks) || currentAlbum.tracks.length === 0) return [];
+
+        // Глобальные рекомендации: очередь — это реальный заранее перемешанный глобальный список.
+        if (isGlobalShuffle && globalPlaylist.length > 0) {
+            const result = [];
+            const total = globalPlaylist.length;
+            const max = repeat === 'none' ? Math.min(limit, Math.max(0, total - 1)) : limit;
+            for (let step = 1; step <= max; step++) {
+                const idx = (globalCurrentIndex + step) % total;
+                result.push({
+                    track: globalPlaylist[idx],
+                    globalIndex: idx,
+                    index: -1,
+                    position: step
+                });
+            }
+            return result;
+        }
+
+        const tracks = currentAlbum.tracks;
+        const result = [];
+
+        if (repeat === 'one') {
+            const current = tracks[currentTrackIndex];
+            for (let i = 0; i < limit; i++) {
+                if (current) result.push({ track: current, index: currentTrackIndex, position: i + 1, repeatOne: true });
+            }
+            return result;
+        }
+
+        if (shuffle) {
+            syncShuffleQueueToCurrent();
+            if (!shuffleQueue.length) return result;
+
+            const remaining = shuffleQueue.length - shuffleQueuePosition - 1;
+            const max = repeat === 'none' ? Math.min(limit, Math.max(0, remaining)) : limit;
+            for (let step = 1; step <= max; step++) {
+                let pos = shuffleQueuePosition + step;
+                let cycleOffset = 0;
+                if (pos >= shuffleQueue.length) {
+                    if (repeat === 'none') break;
+                    cycleOffset = Math.floor(pos / shuffleQueue.length);
+                    pos %= shuffleQueue.length;
+                }
+                const index = shuffleQueue[pos];
+                const track = tracks[index];
+                if (track) {
+                    result.push({ track, index, position: step, cycleOffset });
+                }
+            }
+            return result;
+        }
+
+        for (let step = 1; step <= limit; step++) {
+            let index = currentTrackIndex + step;
+            if (index >= tracks.length) {
+                if (repeat === 'none') break;
+                index %= tracks.length;
+            }
+            const track = tracks[index];
+            if (track) result.push({ track, index, position: step });
+        }
+
+        return result;
+    }
+
+    function createQueueItem(item, position) {
+        const track = item.track;
+        const row = document.createElement('div');
+        row.className = 'queue-item';
+        row.dataset.queueIndex = String(position);
+        if (item.globalIndex >= 0) row.dataset.globalIndex = String(item.globalIndex);
+        if (item.index >= 0) row.dataset.trackIndex = String(item.index);
+        row.title = `Включить: ${track.title || 'Без названия'}`;
+
+        const cover = track.cover || currentAlbum?.cover || 'placeholder.jpg';
+        const artist = track.artist || currentAlbum?.artist || '';
+        const albumTitle = track.albumTitle || (currentAlbum && !currentAlbum.isPlaylist ? currentAlbum.title : '');
+
+        row.innerHTML = `
+            <span class="queue-position">${position + 1}</span>
+            <img class="queue-cover" src="photo/${escapeHtml(cover)}" alt="" onerror="this.src='photo/placeholder.jpg'">
+            <div class="queue-info">
+                <div class="queue-title">${escapeHtml(track.title || 'Без названия')}</div>
+                <div class="queue-meta">${escapeHtml(artist)}${albumTitle ? ` <span>•</span> ${escapeHtml(albumTitle)}` : ''}</div>
+            </div>
+            <span class="queue-duration">${escapeHtml(track.duration || '')}</span>
+        `;
+        return row;
+    }
+
+    function renderQueue() {
+        if (!queueNext) return;
+        const items = getQueueTracks(15);
+        queueNext.innerHTML = '';
+        if (queueFull) queueFull.innerHTML = '';
+
+        if (items.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'queue-empty';
+            empty.textContent = isGlobalShuffle || repeat !== 'none'
+                ? 'Очередь обновится после следующего трека'
+                : 'Это последний трек в текущем списке';
+            queueNext.appendChild(empty);
+            if (queueToggle) queueToggle.style.display = 'none';
+            return;
+        }
+
+        // В свернутом состоянии показываем только ближайший следующий трек.
+        queueNext.appendChild(createQueueItem(items[0], 0));
+
+        if (queueFull) {
+            items.forEach((item, position) => {
+                queueFull.appendChild(createQueueItem(item, position));
+            });
+            queueFull.classList.toggle('hidden', !queueExpanded);
+        }
+
+        if (queueToggle) {
+            queueToggle.style.display = items.length > 1 ? 'inline-flex' : 'none';
+            queueToggle.textContent = queueExpanded ? 'Свернуть' : `Все ${items.length}`;
+            queueToggle.setAttribute('aria-expanded', queueExpanded ? 'true' : 'false');
+            queueToggle.title = queueExpanded ? 'Свернуть очередь' : `Показать все ${items.length} следующих треков`;
+        }
+    }
+
+    function playQueuedItem(row) {
+        if (!row) return;
+        const globalIndex = parseInt(row.dataset.globalIndex, 10);
+        if (isGlobalShuffle && Number.isInteger(globalIndex)) {
+            globalCurrentIndex = globalIndex;
+            playGlobalTrack();
+            return;
+        }
+
+        const index = parseInt(row.dataset.trackIndex, 10);
+        if (!Number.isInteger(index) || !currentAlbum?.tracks?.[index]) return;
+        playTrackByIndex(index, { fromShuffle: shuffle });
     }
 
     // ---------- ОБНОВЛЕНИЕ UI ----------
@@ -248,6 +471,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             recommendPlayBtn.innerHTML = getPlaySvg(32);
         }
+
+        if (currentTrackMeta) updateLyricsNowPlaying(currentTrackMeta);
+        renderQueue();
     }
 
     // ---------- СОХРАНЕНИЕ СОСТОЯНИЯ ----------
@@ -342,8 +568,13 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePlayPauseIcon(false);
         }
 
-        if (shuffle) shuffleBtn.classList.add('active');
-        else shuffleBtn.classList.remove('active');
+        if (shuffle) {
+            shuffleBtn.classList.add('active');
+            resetShuffleQueue(currentTrackIndex);
+        } else {
+            shuffleBtn.classList.remove('active');
+        }
+        updateLyricsNowPlaying(track);
         updateRepeatIcon();
         shuffleBtn.disabled = isGlobalShuffle;
         updatePlaybackUI();
@@ -896,19 +1127,33 @@ function performSearch(query) {
 
     // ---------- КАРУСЕЛЬ ----------
     function goToSlide(index) {
-        const allSlides = document.querySelectorAll('.carousel-slide');
-        const visibleSlides = Array.from(allSlides).filter(s => s.style.display !== 'none');
-        if (visibleSlides.length === 0) return;
+        const allSlides = Array.from(document.querySelectorAll('.carousel-slide'));
+        const visibleSlides = allSlides.filter(s => s.style.display !== 'none');
+        if (!carouselTrack || visibleSlides.length === 0) return;
+
         const total = allSlides.length;
         if (index < 0) index = total - 1;
         if (index >= total) index = 0;
+
         let attempts = 0;
         while (allSlides[index].style.display === 'none' && attempts < total) {
             index = (index + 1) % total;
             attempts++;
         }
+
+        const targetSlide = allSlides[index];
         currentSlide = index;
-        carouselTrack.style.transform = `translateX(-${index * 100}%)`;
+
+        // Смещаем трек на реальную позицию слайда. Так соседние панели не
+        // проваливаются/исчезают при перелистывании и корректно работают
+        // даже когда ширина карусели меняется адаптивно.
+        carouselTrack.style.transform = `translate3d(-${targetSlide.offsetLeft}px, 0, 0)`;
+
+        allSlides.forEach((slide, i) => {
+            const active = i === index;
+            slide.classList.toggle('is-active', active);
+            slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+        });
         document.querySelectorAll('#carousel-dots .dot').forEach((dot, i) => {
             dot.classList.toggle('active', i === index);
         });
@@ -1033,6 +1278,7 @@ function performSearch(query) {
         renderNewReleases();
         callFitAfterRender();
         handleRouting();
+        goToSlide(currentSlide);
         startCarouselAuto();
         updatePlaybackUI();
 
@@ -1720,20 +1966,26 @@ function performSearch(query) {
     });
 
     // ---------- ВОСПРОИЗВЕДЕНИЕ ----------
-    function playTrackByIndex(index) {
-        if (!currentAlbum) return;
+    function playTrackByIndex(index, options = {}) {
+        if (!currentAlbum || !currentAlbum.tracks?.[index]) return;
         currentTrackIndex = index;
+        if (shuffle && !options.fromShuffle) resetShuffleQueue(currentTrackIndex);
+        else if (shuffle) syncShuffleQueueToCurrent();
         loadAndPlay(currentAlbum.tracks[currentTrackIndex]);
         if (!history.includes(currentTrackIndex)) history.push(currentTrackIndex);
         savePlayerState();
+        renderQueue();
     }
 
     function loadAndPlay(track) {
+        if (!track) return;
         audio.src = `music/${track.file}`;
         const trackCoverFile = track.cover || getTrackCover(track.file, allAlbums.filter(a => a.artist === track.artist));
         playerCover.src = `photo/${trackCoverFile}`;
         playerTitle.textContent = track.title || '';
         playerArtist.textContent = track.artist || (currentAlbum ? currentAlbum.artist : '');
+        currentTrackMeta = { ...track, artist: track.artist || (currentAlbum ? currentAlbum.artist : '') };
+        updateLyricsNowPlaying(currentTrackMeta);
         updatePlayPauseIcon(true);
         const trackWithMeta = {
             file: track.file, title: track.title,
@@ -1828,7 +2080,7 @@ function performSearch(query) {
         activeLyricIndex = newActiveIndex;
         if (newActiveIndex >= 0) {
             const el = currentLyricLines[newActiveIndex];
-            const container = el.closest('.lyrics-content');
+            const container = el.closest('[data-lyrics-scroll]') || el.closest('.lyrics-content');
             if (container) {
                 const targetTop = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
                 container.scrollTo({ top: targetTop, behavior: 'smooth' });
@@ -1874,6 +2126,7 @@ function performSearch(query) {
         currentAlbum = { artist: track.artist, cover: track.cover, title: track.albumTitle, tracks: [track] };
         currentTrackIndex = 0;
         loadAndPlay(track);
+        renderQueue();
     }
 
     function stopGlobalShuffle() {
@@ -1905,37 +2158,70 @@ function performSearch(query) {
     function nextTrack() {
         if (isGlobalShuffle) { globalNext(); return; }
         if (!currentAlbum || currentAlbum.tracks.length === 0) return;
-        let nextIndex;
-        if (shuffle) nextIndex = Math.floor(Math.random() * currentAlbum.tracks.length);
-        else {
+        if (repeat === 'one') {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+            return;
+        }
+
+        let nextIndex = -1;
+        if (shuffle) {
+            syncShuffleQueueToCurrent();
+            const nextPos = shuffleQueuePosition + 1;
+            if (nextPos < shuffleQueue.length) {
+                shuffleQueuePosition = nextPos;
+                nextIndex = shuffleQueue[nextPos];
+            } else if (repeat === 'all') {
+                resetShuffleQueue(currentTrackIndex);
+                nextIndex = shuffleQueue.length > 1 ? shuffleQueue[1] : shuffleQueue[0];
+                shuffleQueuePosition = shuffleQueue.length > 1 ? 1 : 0;
+            }
+        } else {
             nextIndex = currentTrackIndex + 1;
             if (nextIndex >= currentAlbum.tracks.length) {
                 if (repeat === 'none') { audio.pause(); updatePlayPauseIcon(false); return; }
                 nextIndex = 0;
             }
         }
-        playTrackByIndex(nextIndex);
+
+        if (nextIndex < 0) {
+            audio.pause();
+            updatePlayPauseIcon(false);
+            renderQueue();
+            return;
+        }
+        playTrackByIndex(nextIndex, { fromShuffle: shuffle });
     }
+
     function prevTrack() {
         if (isGlobalShuffle) { globalPrev(); return; }
         if (!currentAlbum || currentAlbum.tracks.length === 0) return;
         if (shuffle && history.length > 1) {
             history.pop();
             const prevIndex = history.pop();
-            if (prevIndex !== undefined) playTrackByIndex(prevIndex);
-            else playTrackByIndex(0);
+            if (prevIndex !== undefined) playTrackByIndex(prevIndex, { fromShuffle: true });
+            else playTrackByIndex(0, { fromShuffle: true });
         } else {
             let prevIndex = currentTrackIndex - 1;
             if (prevIndex < 0) prevIndex = currentAlbum.tracks.length - 1;
-            playTrackByIndex(prevIndex);
+            playTrackByIndex(prevIndex, { fromShuffle: shuffle });
         }
     }
+
     function toggleShuffle() {
         if (isGlobalShuffle) return;
         shuffle = !shuffle;
-        if (shuffle) { shuffleBtn.classList.add('active'); history = [currentTrackIndex]; }
-        else shuffleBtn.classList.remove('active');
+        if (shuffle) {
+            shuffleBtn.classList.add('active');
+            history = [currentTrackIndex];
+            resetShuffleQueue(currentTrackIndex);
+        } else {
+            shuffleBtn.classList.remove('active');
+            shuffleQueue = [];
+            shuffleQueuePosition = -1;
+        }
         savePlayerState();
+        renderQueue();
     }
     function updateRepeatIcon() {
         if (repeat === 'one') {
@@ -2029,14 +2315,104 @@ function performSearch(query) {
     });
 
     // ---------- ПАНЕЛЬ ТЕКСТА ----------
+    function openLyricsFullscreen() {
+        if (!lyricsFullOverlay || !lyricsFullContent || !lyricsText) return;
+        if (!lyricsPreviewParent) lyricsPreviewParent = lyricsText.parentElement;
+        if (!lyricsFullContent.contains(lyricsText)) lyricsFullContent.appendChild(lyricsText);
+        lyricsFullOverlay.classList.remove('hidden');
+        lyricsPanel.classList.add('lyrics-fullscreen-open');
+        isLyricsFullscreen = true;
+        if (lyricsExpandBtn) lyricsExpandBtn.textContent = 'Свернуть';
+        requestAnimationFrame(() => updateKaraokeLines());
+    }
+
+    function closeLyricsFullscreen() {
+        if (!lyricsFullOverlay || !lyricsText) return;
+        if (lyricsPreviewParent && !lyricsPreviewParent.contains(lyricsText)) lyricsPreviewParent.appendChild(lyricsText);
+        lyricsFullOverlay.classList.add('hidden');
+        lyricsPanel.classList.remove('lyrics-fullscreen-open');
+        isLyricsFullscreen = false;
+        if (lyricsExpandBtn) lyricsExpandBtn.textContent = 'Развернуть';
+        requestAnimationFrame(() => updateKaraokeLines());
+    }
+
     lyricsBtn.addEventListener('click', () => {
-        lyricsPanel.classList.toggle('open');
-        document.body.classList.toggle('lyrics-open');
+        const willOpen = !lyricsPanel.classList.contains('open');
+        lyricsPanel.classList.toggle('open', willOpen);
+        document.body.classList.toggle('lyrics-open', willOpen);
+
+        if (willOpen) {
+            // Каждый новый вход в «Сейчас играет» начинается с компактной
+            // очереди — один следующий трек виден сразу.
+            queueExpanded = false;
+            renderQueue();
+        }
+
+        if (!willOpen && isLyricsFullscreen) closeLyricsFullscreen();
     });
+
     lyricsCloseBtn.addEventListener('click', () => {
+        if (isLyricsFullscreen) closeLyricsFullscreen();
         lyricsPanel.classList.remove('open');
         document.body.classList.remove('lyrics-open');
     });
+
+    if (lyricsExpandBtn) {
+        lyricsExpandBtn.addEventListener('click', () => {
+            if (isLyricsFullscreen) closeLyricsFullscreen();
+            else openLyricsFullscreen();
+        });
+    }
+
+    if (lyricsFullClose) lyricsFullClose.addEventListener('click', closeLyricsFullscreen);
+    if (lyricsFullOverlay) lyricsFullOverlay.addEventListener('click', (e) => {
+        if (e.target === lyricsFullOverlay) closeLyricsFullscreen();
+    });
+
+    if (lyricsNowArtist) {
+        lyricsNowArtist.addEventListener('click', () => {
+            const artist = lyricsNowArtist.dataset.artist || currentTrackMeta?.artist;
+            if (!artist) return;
+            if (isLyricsFullscreen) closeLyricsFullscreen();
+            stopGlobalShuffle();
+            showArtistPage(artist);
+        });
+    }
+
+    if (queueNext) queueNext.addEventListener('click', (e) => {
+        const row = e.target.closest('.queue-item');
+        if (!row) return;
+        playQueuedItem(row);
+    });
+    if (queueFull) queueFull.addEventListener('click', (e) => {
+        const row = e.target.closest('.queue-item');
+        if (!row) return;
+        playQueuedItem(row);
+    });
+    if (queueToggle) queueToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        queueExpanded = !queueExpanded;
+
+        // Не перерисовываем всю очередь при обычном раскрытии/сворачивании:
+        // так кнопка никогда не теряет фокус/событие, а список плавно меняет состояние.
+        if (queueFull) queueFull.classList.toggle('hidden', !queueExpanded);
+        queueToggle.textContent = queueExpanded
+            ? 'Свернуть'
+            : `Все ${Math.min(15, getQueueTracks(15).length)}`;
+        queueToggle.setAttribute('aria-expanded', queueExpanded ? 'true' : 'false');
+        queueToggle.title = queueExpanded
+            ? 'Свернуть очередь'
+            : `Показать следующие треки`;
+
+        if (queueExpanded) {
+            requestAnimationFrame(() => {
+                queueFull?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        }
+    });
+
     lyricsCover.addEventListener('click', () => {
         if (!lyricsCover.src) return;
         imageModalImg.src = lyricsCover.src;
@@ -2297,9 +2673,10 @@ function performSearch(query) {
 
     // ---------- ОБРАБОТЧИКИ ----------
     playerArtist.addEventListener('click', () => {
-        if (!currentAlbum) return;
+        const artist = currentTrackMeta?.artist || currentAlbum?.artist;
+        if (!artist) return;
         stopGlobalShuffle();
-        showArtistPage(currentAlbum.artist);
+        showArtistPage(artist);
     });
     playerCover.addEventListener('click', () => {
         if (!playerCover.src) return;

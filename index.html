@@ -223,7 +223,16 @@
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M4 6h16M4 12h16M4 18h10"/>
                     </svg>
-                </button>
+                <button id="eq-btn" class="control-btn eq-btn" title="Эквалайзер" aria-expanded="false" aria-controls="equalizer-panel">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4"  y1="6"  x2="10" y2="6"/>
+        <line x1="14" y1="6"  x2="20" y2="6"/>
+        <line x1="4"  y1="12" x2="8"  y2="12"/>
+        <line x1="12" y1="12" x2="20" y2="12"/>
+        <line x1="4"  y1="18" x2="14" y2="18"/>
+        <line x1="18" y1="18" x2="20" y2="18"/>
+    </svg>
+</button>
                 <div class="volume-container">
                     <button id="volume-btn" class="control-btn volume-icon" title="Громкость">
                         <svg id="volume-on-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -241,6 +250,54 @@
             </div>
             <audio id="audio"></audio>
         </div>
+        <!-- Эквалайзер -->
+<div id="equalizer-panel" class="equalizer-panel hidden" role="dialog" aria-label="Эквалайзер" aria-hidden="true">
+    <div class="eq-header">
+        <div class="eq-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="4"  y1="6"  x2="10" y2="6"/>
+                <line x1="14" y1="6"  x2="20" y2="6"/>
+                <line x1="4"  y1="12" x2="8"  y2="12"/>
+                <line x1="12" y1="12" x2="20" y2="12"/>
+                <line x1="4"  y1="18" x2="14" y2="18"/>
+                <line x1="18" y1="18" x2="20" y2="18"/>
+            </svg>
+            Эквалайзер
+        </div>
+        <div class="eq-header-actions">
+            <span id="eq-gain-info" class="eq-gain-info">Выкл</span>
+            <button id="eq-power" class="eq-power" type="button" aria-pressed="false" title="Включить эквалайзер">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M12 2v10"/>
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                </svg>
+            </button>
+            <button id="eq-close" class="eq-close" type="button" aria-label="Закрыть">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="eq-presets" class="eq-presets"></div>
+
+    <div class="eq-bands-wrap">
+        <div id="eq-bands" class="eq-bands"></div>
+    </div>
+
+    <div class="eq-footer">
+        <button id="eq-reset" class="eq-reset" type="button">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M3 12a9 9 0 1 0 3-6.7"/>
+                <polyline points="3 4 3 9 8 9"/>
+            </svg>
+            Сбросить
+        </button>
+        <span class="eq-hint">−40 dB … +40 dB</span>
+    </div>
+</div>
     </main>
 
     <!-- Панель «Сейчас играет» -->

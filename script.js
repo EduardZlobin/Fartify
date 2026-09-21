@@ -132,6 +132,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSlide = 0;
     let carouselTimer = null;
 
+    // === Context menu / blocked / manual queue / release info ===
+    let blockedTracks = new Set();
+    let manualQueue = [];            // [{ id, track, album }]
+    let manualQueueIdCounter = 0;
+    let manualResumeState = null;    // снимок контекста для возврата после ручной очереди
+    let releaseInfo = {};
+    const BLOCKED_STORAGE_KEY = 'fartify_blocked_tracks';
+
     const AUTO_PLAYLIST_COUNT = 5;
     const TRACKS_PER_PLAYLIST = 10;
 
@@ -144,6 +152,302 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ---------- БЛОКИРОВКА ТРЕКОВ ----------
+    function loadBlockedTracks() {
+        try {
+            const raw = localStorage.getItem(BLOCKED_STORAGE_KEY);
+            if (!raw) return;
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) blockedTracks = new Set(arr);
+        } catch (e) { blockedTracks = new Set(); }
+    }
+
+    function saveBlockedTracks() {
+        try {
+            localStorage.setItem(BLOCKED_STORAGE_KEY, JSON.stringify([...blockedTracks]));
+        } catch (e) {}
+    }
+
+    function isBlocked(file) {
+        return !!file && blockedTracks.has(file);
+    }
+
+    function toggleBlockedTrack(file) {
+        if (!file) return;
+        if (blockedTracks.has(file)) blockedTracks.delete(file);
+        else blockedTracks.add(file);
+        saveBlockedTracks();
+
+        if (blockedTracks.has(file)) {
+            manualQueue = manualQueue.filter(it => it.track.file !== file);
+        }
+
+        document.querySelectorAll('.track-row[data-file]').forEach(row => {
+            if (row.dataset.file === file) {
+                row.classList.toggle('is-blocked', blockedTracks.has(file));
+            }
+        });
+
+        if (shuffle && currentAlbum?.tracks) {
+            resetShuffleQueue(currentTrackIndex);
+        }
+
+        renderQueue();
+        updatePlaybackUI();
+    }
+
+    // ---------- РУЧНАЯ ОЧЕРЕДЬ (INSERT, НЕ REPLACE) ----------
+    function addToManualQueue(track, album) {
+        if (!track || !track.file) return;
+        manualQueue.push({
+            id: ++manualQueueIdCounter,
+            track: {
+                ...track,
+                albumTitle: track.albumTitle || (album ? album.title : '') || ''
+            },
+            album: album || null
+        });
+        renderQueue();
+    }
+
+    function removeFromManualQueue(manualId) {
+        const before = manualQueue.length;
+        manualQueue = manualQueue.filter(it => it.id !== manualId);
+        if (manualQueue.length !== before) renderQueue();
+    }
+
+    function findTrackAndAlbum(file) {
+        for (const album of allAlbums) {
+            const t = album.tracks.find(t => t.file === file);
+            if (t) return { track: t, album };
+        }
+        return null;
+    }
+
+    function captureResumeState() {
+        if (manualResumeState) return;
+        manualResumeState = {
+            album: currentAlbum,
+            trackIndex: currentTrackIndex,
+            isGlobalShuffle,
+            globalPlaylist: [...globalPlaylist],
+            globalCurrentIndex,
+            shuffle,
+            shuffleQueue: [...shuffleQueue],
+            shuffleQueuePosition,
+            history: [...history]
+        };
+    }
+
+    function restoreManualResume() {
+        if (!manualResumeState) return false;
+        const s = manualResumeState;
+        currentAlbum = s.album;
+        currentTrackIndex = s.trackIndex;
+        isGlobalShuffle = s.isGlobalShuffle;
+        globalPlaylist = s.globalPlaylist;
+        globalCurrentIndex = s.globalCurrentIndex;
+        shuffle = s.shuffle;
+        shuffleQueue = s.shuffleQueue;
+        shuffleQueuePosition = s.shuffleQueuePosition;
+        history = s.history;
+        shuffleBtn.classList.toggle('active', shuffle);
+        shuffleBtn.disabled = isGlobalShuffle;
+        manualResumeState = null;
+        return true;
+    }
+
+    function clearManualContext() {
+        manualQueue = [];
+        manualResumeState = null;
+    }
+
+    function playManualItem(item) {
+        if (!item) return;
+        const { track, album } = item;
+
+        captureResumeState();
+
+        let realAlbum = null;
+        let realIndex = -1;
+        if (album) {
+            realAlbum = allAlbums.find(a =>
+                a.title === album.title && a.artist === album.artist
+            ) || album;
+            realIndex = realAlbum.tracks.findIndex(t => t.file === track.file);
+        }
+
+        if (realAlbum && realIndex !== -1) {
+            currentAlbum = realAlbum;
+            currentTrackIndex = realIndex;
+            loadAndPlay(realAlbum.tracks[realIndex]);
+        } else {
+            currentAlbum = {
+                artist: track.artist || '',
+                cover: track.cover || 'placeholder.jpg',
+                title: track.albumTitle || '',
+                tracks: [track]
+            };
+            currentTrackIndex = 0;
+            loadAndPlay(track);
+        }
+    }
+
+    function playManualQueueItem(manualId) {
+        const idx = manualQueue.findIndex(it => it.id === manualId);
+        if (idx === -1) return;
+        const item = manualQueue[idx];
+        manualQueue.splice(0, idx + 1);
+        playManualItem(item);
+    }
+
+    // ---------- КОНТЕКСТНОЕ МЕНЮ ----------
+    function showContextMenu(x, y, target, options) {
+        const menu = document.getElementById('context-menu');
+        if (!menu) return;
+        menu.querySelectorAll('.context-menu-item').forEach(btn => {
+            const a = btn.dataset.action;
+            if (a === 'add-queue')    btn.style.display = options.allowAddQueue    ? '' : 'none';
+            if (a === 'block')        btn.style.display = options.allowBlock       ? '' : 'none';
+            if (a === 'remove-queue') btn.style.display = options.allowRemoveQueue ? '' : 'none';
+        });
+        if (options.allowBlock) {
+            const lbl = menu.querySelector('.ctx-block-label');
+            if (lbl) lbl.textContent = options.isBlocked ? 'Разблокировать' : 'Заблокировать';
+        }
+        menu.classList.remove('hidden');
+        const rect = menu.getBoundingClientRect();
+        const vw = window.innerWidth, vh = window.innerHeight;
+        if (x + rect.width  > vw - 8) x = vw - rect.width  - 8;
+        if (y + rect.height > vh - 8) y = vh - rect.height - 8;
+        if (x < 8) x = 8;
+        if (y < 8) y = 8;
+        menu.style.left = x + 'px';
+        menu.style.top  = y + 'px';
+        window.__ctxTarget = target;
+    }
+
+    function hideContextMenu() {
+        const menu = document.getElementById('context-menu');
+        if (menu) menu.classList.add('hidden');
+        window.__ctxTarget = null;
+    }
+
+    function initContextMenu() {
+        const menu = document.getElementById('context-menu');
+        if (!menu) return;
+
+        menu.addEventListener('click', (e) => {
+            const btn = e.target.closest('.context-menu-item');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const target = window.__ctxTarget;
+            hideContextMenu();
+            if (!target) return;
+
+            if (action === 'add-queue') {
+                const file = target.dataset.file;
+                if (!file) return;
+                const found = findTrackAndAlbum(file);
+                if (found) addToManualQueue(found.track, found.album);
+                return;
+            }
+
+            if (action === 'block') {
+                const file = target.dataset.file;
+                if (!file) return;
+                toggleBlockedTrack(file);
+                return;
+            }
+
+            if (action === 'remove-queue') {
+                const manualId = parseInt(target.dataset.manualId, 10);
+                if (Number.isInteger(manualId) && manualId > 0) {
+                    removeFromManualQueue(manualId);
+                }
+                return;
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#context-menu')) hideContextMenu();
+        });
+        document.addEventListener('scroll', hideContextMenu, true);
+        window.addEventListener('resize', hideContextMenu);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideContextMenu();
+        });
+
+        document.addEventListener('contextmenu', (e) => {
+            const queueItem = e.target.closest('.queue-item');
+            if (queueItem) {
+                e.preventDefault();
+                const manualId = parseInt(queueItem.dataset.manualId, 10);
+                const isManual = Number.isInteger(manualId) && manualId > 0;
+                const file = queueItem.dataset.file;
+
+                if (isManual) {
+                    showContextMenu(e.clientX, e.clientY, queueItem, {
+                        allowAddQueue: false,
+                        allowBlock: false,
+                        allowRemoveQueue: true
+                    });
+                    return;
+                }
+                if (file) {
+                    showContextMenu(e.clientX, e.clientY, queueItem, {
+                        allowAddQueue: false,
+                        allowBlock: true,
+                        isBlocked: isBlocked(file),
+                        allowRemoveQueue: false
+                    });
+                    return;
+                }
+                return;
+            }
+
+            const trackRow = e.target.closest('.track-row');
+            if (trackRow && trackRow.dataset.file) {
+                e.preventDefault();
+                const file = trackRow.dataset.file;
+                showContextMenu(e.clientX, e.clientY, trackRow, {
+                    allowAddQueue: true,
+                    allowBlock: true,
+                    isBlocked: isBlocked(file),
+                    allowRemoveQueue: false
+                });
+            }
+        });
+    }
+
+    // ---------- БЛОК «О РЕЛИЗЕ» ----------
+    function updateReleaseInfoBlock(track) {
+        const block = document.getElementById('release-info-block');
+        if (!block) return;
+
+        if (!track || !track.file || !releaseInfo[track.file]) {
+            block.classList.add('hidden');
+            return;
+        }
+
+        const info = releaseInfo[track.file];
+        const imgEl  = document.getElementById('release-info-image');
+        const textEl = document.getElementById('release-info-text');
+
+        if (imgEl) {
+            if (info.image) {
+                imgEl.style.display = '';
+                imgEl.src = `photo/${info.image}`;
+            } else {
+                imgEl.style.display = 'none';
+                imgEl.removeAttribute('src');
+            }
+        }
+        if (textEl) textEl.textContent = info.text || '';
+
+        block.classList.remove('hidden');
     }
 
     // ---------- БОКОВАЯ ПАНЕЛЬ: КОНТЕКСТ И ОЧЕРЕДЬ ----------
@@ -197,11 +501,20 @@ document.addEventListener('DOMContentLoaded', () => {
             shuffleQueuePosition = -1;
             return;
         }
+        const allowed = currentAlbum.tracks
+            .map((t, i) => ({ t, i }))
+            .filter(({ t }) => !isBlocked(t.file))
+            .map(({ i }) => i);
 
-        const allIndexes = currentAlbum.tracks.map((_, index) => index);
-        const rest = allIndexes.filter(index => index !== startIndex);
+        if (allowed.length === 0) {
+            shuffleQueue = [];
+            shuffleQueuePosition = -1;
+            return;
+        }
+        const start = allowed.includes(startIndex) ? startIndex : allowed[0];
+        const rest = allowed.filter(i => i !== start);
         rest.sort(() => Math.random() - 0.5);
-        shuffleQueue = [startIndex, ...rest];
+        shuffleQueue = [start, ...rest];
         shuffleQueuePosition = 0;
     }
 
@@ -212,18 +525,28 @@ document.addEventListener('DOMContentLoaded', () => {
         else shuffleQueuePosition = pos;
     }
 
-    function getQueueTracks(limit = 15) {
-        if (!currentAlbum || !Array.isArray(currentAlbum.tracks) || currentAlbum.tracks.length === 0) return [];
+    function getBaseQueueTracks(limit = 15, state = null) {
+        const S = state || {
+            album: currentAlbum,
+            trackIndex: currentTrackIndex,
+            isGlobalShuffle,
+            globalPlaylist,
+            globalCurrentIndex,
+            shuffle,
+            shuffleQueue,
+            shuffleQueuePosition
+        };
 
-        // Глобальные рекомендации: очередь — это реальный заранее перемешанный глобальный список.
-        if (isGlobalShuffle && globalPlaylist.length > 0) {
+        if (!S.album || !Array.isArray(S.album.tracks) || S.album.tracks.length === 0) return [];
+
+        if (S.isGlobalShuffle && S.globalPlaylist.length > 0) {
             const result = [];
-            const total = globalPlaylist.length;
+            const total = S.globalPlaylist.length;
             const max = repeat === 'none' ? Math.min(limit, Math.max(0, total - 1)) : limit;
             for (let step = 1; step <= max; step++) {
-                const idx = (globalCurrentIndex + step) % total;
+                const idx = (S.globalCurrentIndex + step) % total;
                 result.push({
-                    track: globalPlaylist[idx],
+                    track: S.globalPlaylist[idx],
                     globalIndex: idx,
                     index: -1,
                     position: step
@@ -232,32 +555,31 @@ document.addEventListener('DOMContentLoaded', () => {
             return result;
         }
 
-        const tracks = currentAlbum.tracks;
+        const tracks = S.album.tracks;
         const result = [];
 
         if (repeat === 'one') {
-            const current = tracks[currentTrackIndex];
+            const current = tracks[S.trackIndex];
             for (let i = 0; i < limit; i++) {
-                if (current) result.push({ track: current, index: currentTrackIndex, position: i + 1, repeatOne: true });
+                if (current) result.push({ track: current, index: S.trackIndex, position: i + 1, repeatOne: true });
             }
             return result;
         }
 
-        if (shuffle) {
-            syncShuffleQueueToCurrent();
-            if (!shuffleQueue.length) return result;
+        if (S.shuffle) {
+            if (!S.shuffleQueue.length) return result;
 
-            const remaining = shuffleQueue.length - shuffleQueuePosition - 1;
+            const remaining = S.shuffleQueue.length - S.shuffleQueuePosition - 1;
             const max = repeat === 'none' ? Math.min(limit, Math.max(0, remaining)) : limit;
             for (let step = 1; step <= max; step++) {
-                let pos = shuffleQueuePosition + step;
+                let pos = S.shuffleQueuePosition + step;
                 let cycleOffset = 0;
-                if (pos >= shuffleQueue.length) {
+                if (pos >= S.shuffleQueue.length) {
                     if (repeat === 'none') break;
-                    cycleOffset = Math.floor(pos / shuffleQueue.length);
-                    pos %= shuffleQueue.length;
+                    cycleOffset = Math.floor(pos / S.shuffleQueue.length);
+                    pos %= S.shuffleQueue.length;
                 }
-                const index = shuffleQueue[pos];
+                const index = S.shuffleQueue[pos];
                 const track = tracks[index];
                 if (track) {
                     result.push({ track, index, position: step, cycleOffset });
@@ -267,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         for (let step = 1; step <= limit; step++) {
-            let index = currentTrackIndex + step;
+            let index = S.trackIndex + step;
             if (index >= tracks.length) {
                 if (repeat === 'none') break;
                 index %= tracks.length;
@@ -279,10 +601,51 @@ document.addEventListener('DOMContentLoaded', () => {
         return result;
     }
 
+    function getQueueTracks(limit = 15) {
+        const result = [];
+
+        manualQueue.forEach((item, i) => {
+            if (i >= limit) return;
+            result.push({
+                track: item.track,
+                index: -1,
+                position: i,
+                isManual: true,
+                manualId: item.id
+            });
+        });
+
+        const remaining = limit - result.length;
+        if (remaining > 0) {
+            const queueState = manualResumeState ? {
+                album: manualResumeState.album,
+                trackIndex: manualResumeState.trackIndex,
+                isGlobalShuffle: manualResumeState.isGlobalShuffle,
+                globalPlaylist: manualResumeState.globalPlaylist,
+                globalCurrentIndex: manualResumeState.globalCurrentIndex,
+                shuffle: manualResumeState.shuffle,
+                shuffleQueue: manualResumeState.shuffleQueue,
+                shuffleQueuePosition: manualResumeState.shuffleQueuePosition
+            } : null;
+
+            const base = getBaseQueueTracks(remaining + 6, queueState)
+                .filter(item => !isBlocked(item.track.file))
+                .slice(0, remaining);
+            base.forEach(item => {
+                item.position = result.length;
+                result.push(item);
+            });
+        }
+
+        return result;
+    }
+
     function createQueueItem(item, position) {
         const track = item.track;
         const row = document.createElement('div');
         row.className = 'queue-item';
+        if (track.file) row.dataset.file = track.file;
+        if (item.isManual && item.manualId) row.dataset.manualId = String(item.manualId);
         row.dataset.queueIndex = String(position);
         if (item.globalIndex >= 0) row.dataset.globalIndex = String(item.globalIndex);
         if (item.index >= 0) row.dataset.trackIndex = String(item.index);
@@ -321,7 +684,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // В свернутом состоянии показываем только ближайший следующий трек.
         queueNext.appendChild(createQueueItem(items[0], 0));
 
         if (queueFull) {
@@ -341,8 +703,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function playQueuedItem(row) {
         if (!row) return;
+
+        const manualId = parseInt(row.dataset.manualId, 10);
+        if (Number.isInteger(manualId) && manualId > 0) {
+            playManualQueueItem(manualId);
+            return;
+        }
+
         const globalIndex = parseInt(row.dataset.globalIndex, 10);
         if (isGlobalShuffle && Number.isInteger(globalIndex)) {
+            if (manualResumeState) restoreManualResume();
             globalCurrentIndex = globalIndex;
             playGlobalTrack();
             return;
@@ -350,6 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const index = parseInt(row.dataset.trackIndex, 10);
         if (!Number.isInteger(index) || !currentAlbum?.tracks?.[index]) return;
+        if (manualResumeState) restoreManualResume();
         playTrackByIndex(index, { fromShuffle: shuffle });
     }
 
@@ -592,228 +963,212 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------- ПОИСК ----------
-    // ---------- УМНЫЙ ПОИСК: транслитерация + fuzzy ----------
-const CYR_TO_LAT = {
-    'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z',
-    'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
-    'с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'ts','ч':'ch','ш':'sh','щ':'shch',
-    'ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya',
-    'і':'i','ї':'yi','є':'ye','ґ':'g'
-};
-const LAT_TO_CYR = {
-    'a':'а','b':'б','c':'ц','d':'д','e':'е','f':'ф','g':'г','h':'х','i':'и',
-    'j':'й','k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','q':'к','r':'р',
-    's':'с','t':'т','u':'у','v':'в','w':'в','x':'х','y':'и','z':'з'
-};
+    const CYR_TO_LAT = {
+        'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z',
+        'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
+        'с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'ts','ч':'ch','ш':'sh','щ':'shch',
+        'ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya',
+        'і':'i','ї':'yi','є':'ye','ґ':'g'
+    };
+    const LAT_TO_CYR = {
+        'a':'а','b':'б','c':'ц','d':'д','e':'е','f':'ф','g':'г','h':'х','i':'и',
+        'j':'й','k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','q':'к','r':'р',
+        's':'с','t':'т','u':'у','v':'в','w':'в','x':'х','y':'и','z':'з'
+    };
 
-// Нормализация: всё в нижний регистр, знаки препинания → пробелы
-function normalizeStr(s) {
-    return String(s)
-        .toLowerCase()
-        .replace(/[&,.!?;:()\[\]{}\-_/\\'"`«»""''…]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-// Транслит: кириллица → латиница
-function cyrToLat(str) {
-    let out = '';
-    for (const ch of str) out += (CYR_TO_LAT[ch] !== undefined ? CYR_TO_LAT[ch] : ch);
-    return out;
-}
-
-// Транслит: латиница → кириллица
-function latToCyr(str) {
-    let out = '';
-    for (const ch of str) out += (LAT_TO_CYR[ch] !== undefined ? LAT_TO_CYR[ch] : ch);
-    return out;
-}
-
-// Все варианты написания строки для сравнения
-function generateVariants(str) {
-    const set = new Set();
-    const add = (v) => { if (v && v.length) set.add(v); };
-    const norm = str.toLowerCase();
-
-    add(norm);
-    add(norm.replace(/\s+/g, ''));         // без пробелов
-
-    if (/[а-яёіїєґ]/.test(norm)) {
-        const lat = cyrToLat(norm);
-        add(lat);
-        add(lat.replace(/\s+/g, ''));
-    }
-    if (/[a-z]/.test(norm)) {
-        const cyr = latToCyr(norm);
-        add(cyr);
-        add(cyr.replace(/\s+/g, ''));
+    function normalizeStr(s) {
+        return String(s)
+            .toLowerCase()
+            .replace(/[&,.!?;:()\[\]{}\-_/\\'"`«»""''…]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 
-    return Array.from(set);
-}
+    function cyrToLat(str) {
+        let out = '';
+        for (const ch of str) out += (CYR_TO_LAT[ch] !== undefined ? CYR_TO_LAT[ch] : ch);
+        return out;
+    }
 
-// Расстояние Левенштейна
-function levenshtein(a, b) {
-    if (a === b) return 0;
-    if (!a.length) return b.length;
-    if (!b.length) return a.length;
-    const m = a.length, n = b.length;
-    const prev = new Array(n + 1);
-    const curr = new Array(n + 1);
-    for (let j = 0; j <= n; j++) prev[j] = j;
-    for (let i = 1; i <= m; i++) {
-        curr[0] = i;
-        for (let j = 1; j <= n; j++) {
-            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-            curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    function latToCyr(str) {
+        let out = '';
+        for (const ch of str) out += (LAT_TO_CYR[ch] !== undefined ? LAT_TO_CYR[ch] : ch);
+        return out;
+    }
+
+    function generateVariants(str) {
+        const set = new Set();
+        const add = (v) => { if (v && v.length) set.add(v); };
+        const norm = str.toLowerCase();
+
+        add(norm);
+        add(norm.replace(/\s+/g, ''));
+
+        if (/[а-яёіїєґ]/.test(norm)) {
+            const lat = cyrToLat(norm);
+            add(lat);
+            add(lat.replace(/\s+/g, ''));
         }
-        for (let j = 0; j <= n; j++) prev[j] = curr[j];
+        if (/[a-z]/.test(norm)) {
+            const cyr = latToCyr(norm);
+            add(cyr);
+            add(cyr.replace(/\s+/g, ''));
+        }
+
+        return Array.from(set);
     }
-    return prev[n];
-}
 
-// Степень совпадения 0..1
-function fuzzyScore(query, target) {
-    const q = normalizeStr(query);
-    const t = normalizeStr(target);
-    if (!q || !t) return 0;
-
-    // 1. Точное вхождение
-    if (t.includes(q)) {
-        return 0.95 + Math.min(0.05, q.length / Math.max(t.length, 1) * 0.1);
-    }
-    if (q.includes(t)) return 0.9;
-
-    const qVariants = generateVariants(q);
-    const tVariants = generateVariants(t);
-
-    let best = 0;
-
-    for (const qv of qVariants) {
-        for (const tv of tVariants) {
-            // Быстрый отсев по длине
-            const lenDiff = Math.abs(qv.length - tv.length);
-            const maxLen = Math.max(qv.length, tv.length);
-            if (maxLen === 0) continue;
-            if (lenDiff / maxLen > 0.7) continue;
-
-            // 2. Вхождение транслитерированного варианта
-            if (tv.includes(qv) || qv.includes(tv)) {
-                const ratio = Math.min(qv.length, tv.length) / maxLen;
-                best = Math.max(best, 0.8 + ratio * 0.15);
-                continue;
+    function levenshtein(a, b) {
+        if (a === b) return 0;
+        if (!a.length) return b.length;
+        if (!b.length) return a.length;
+        const m = a.length, n = b.length;
+        const prev = new Array(n + 1);
+        const curr = new Array(n + 1);
+        for (let j = 0; j <= n; j++) prev[j] = j;
+        for (let i = 1; i <= m; i++) {
+            curr[0] = i;
+            for (let j = 1; j <= n; j++) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
             }
+            for (let j = 0; j <= n; j++) prev[j] = curr[j];
+        }
+        return prev[n];
+    }
 
-            // 3. Совпадение по словам (для многословных запросов)
-            const qWords = qv.split(' ').filter(w => w.length >= 2);
-            const tWords = tv.split(' ').filter(w => w.length >= 2);
-            if (qWords.length > 1 && tWords.length > 0) {
-                let matched = 0;
-                for (const qw of qWords) {
-                    const hit = tWords.some(tw => {
-                        if (tw.includes(qw) || qw.includes(tw)) return true;
-                        const ml = Math.max(qw.length, tw.length);
-                        if (ml < 3) return false;
-                        return levenshtein(qw, tw) / ml < 0.35;
-                    });
-                    if (hit) matched++;
+    function fuzzyScore(query, target) {
+        const q = normalizeStr(query);
+        const t = normalizeStr(target);
+        if (!q || !t) return 0;
+
+        if (t.includes(q)) {
+            return 0.95 + Math.min(0.05, q.length / Math.max(t.length, 1) * 0.1);
+        }
+        if (q.includes(t)) return 0.9;
+
+        const qVariants = generateVariants(q);
+        const tVariants = generateVariants(t);
+
+        let best = 0;
+
+        for (const qv of qVariants) {
+            for (const tv of tVariants) {
+                const lenDiff = Math.abs(qv.length - tv.length);
+                const maxLen = Math.max(qv.length, tv.length);
+                if (maxLen === 0) continue;
+                if (lenDiff / maxLen > 0.7) continue;
+
+                if (tv.includes(qv) || qv.includes(tv)) {
+                    const ratio = Math.min(qv.length, tv.length) / maxLen;
+                    best = Math.max(best, 0.8 + ratio * 0.15);
+                    continue;
                 }
-                const wordRatio = matched / qWords.length;
-                if (wordRatio > 0) best = Math.max(best, wordRatio * 0.85);
-            }
 
-            // 4. Нечёткое сравнение всей строки
-            const dist = levenshtein(qv, tv);
-            const sim = 1 - dist / maxLen;
-            if (sim > 0.45) best = Math.max(best, sim * 0.75);
+                const qWords = qv.split(' ').filter(w => w.length >= 2);
+                const tWords = tv.split(' ').filter(w => w.length >= 2);
+                if (qWords.length > 1 && tWords.length > 0) {
+                    let matched = 0;
+                    for (const qw of qWords) {
+                        const hit = tWords.some(tw => {
+                            if (tw.includes(qw) || qw.includes(tw)) return true;
+                            const ml = Math.max(qw.length, tw.length);
+                            if (ml < 3) return false;
+                            return levenshtein(qw, tw) / ml < 0.35;
+                        });
+                        if (hit) matched++;
+                    }
+                    const wordRatio = matched / qWords.length;
+                    if (wordRatio > 0) best = Math.max(best, wordRatio * 0.85);
+                }
 
-            // 5. Сравнение без пробелов (склеенные слова)
-            const qc = qv.replace(/\s+/g, '');
-            const tc = tv.replace(/\s+/g, '');
-            const mc = Math.max(qc.length, tc.length);
-            if (mc > 0) {
-                const distC = levenshtein(qc, tc);
-                const simC = 1 - distC / mc;
-                if (simC > 0.45) best = Math.max(best, simC * 0.8);
+                const dist = levenshtein(qv, tv);
+                const sim = 1 - dist / maxLen;
+                if (sim > 0.45) best = Math.max(best, sim * 0.75);
+
+                const qc = qv.replace(/\s+/g, '');
+                const tc = tv.replace(/\s+/g, '');
+                const mc = Math.max(qc.length, tc.length);
+                if (mc > 0) {
+                    const distC = levenshtein(qc, tc);
+                    const simC = 1 - distC / mc;
+                    if (simC > 0.45) best = Math.max(best, simC * 0.8);
+                }
             }
         }
+
+        return best;
     }
 
-    return best;
-}
+    const SEARCH_MIN_SCORE = 0.32;
 
-const SEARCH_MIN_SCORE = 0.32;
+    function performSearch(query) {
+        const raw = query.trim();
+        if (!raw) return { tracks: [], albums: [], artists: [] };
 
-function performSearch(query) {
-    const raw = query.trim();
-    if (!raw) return { tracks: [], albums: [], artists: [] };
+        const tracks = [];
+        const albums = [];
+        const artists = [];
 
-    const tracks = [];
-    const albums = [];
-    const artists = [];
+        const seenFiles = new Set();
+        const trackScores = [];
+        allAlbums.forEach(album => {
+            album.tracks.forEach(track => {
+                if (seenFiles.has(track.file)) return;
+                const sTitle = fuzzyScore(raw, track.title);
+                const sArtist = fuzzyScore(raw, album.artist);
+                const score = Math.max(sTitle, sArtist * 0.82);
+                if (score >= SEARCH_MIN_SCORE) {
+                    seenFiles.add(track.file);
+                    trackScores.push({
+                        score,
+                        data: {
+                            file: track.file,
+                            title: track.title,
+                            artist: album.artist,
+                            cover: track.cover || album.cover
+                        }
+                    });
+                }
+            });
+        });
+        trackScores.sort((a, b) => b.score - a.score);
+        trackScores.slice(0, 5).forEach(x => tracks.push(x.data));
 
-    // --- Треки ---
-    const seenFiles = new Set();
-    const trackScores = [];
-    allAlbums.forEach(album => {
-        album.tracks.forEach(track => {
-            if (seenFiles.has(track.file)) return;
-            const sTitle = fuzzyScore(raw, track.title);
+        const albumScores = [];
+        allAlbums.forEach(album => {
+            const sTitle = fuzzyScore(raw, album.title);
             const sArtist = fuzzyScore(raw, album.artist);
             const score = Math.max(sTitle, sArtist * 0.82);
             if (score >= SEARCH_MIN_SCORE) {
-                seenFiles.add(track.file);
-                trackScores.push({
+                albumScores.push({ score, data: album });
+            }
+        });
+        albumScores.sort((a, b) => b.score - a.score);
+        albumScores.slice(0, 5).forEach(x => albums.push(x.data));
+
+        const seenArtists = new Set();
+        const artistScores = [];
+        allAlbums.forEach(album => {
+            if (seenArtists.has(album.artist)) return;
+            const score = fuzzyScore(raw, album.artist);
+            if (score >= SEARCH_MIN_SCORE) {
+                seenArtists.add(album.artist);
+                const artistInfo = artistsMap[album.artist];
+                artistScores.push({
                     score,
                     data: {
-                        file: track.file,
-                        title: track.title,
-                        artist: album.artist,
-                        cover: track.cover || album.cover
+                        name: album.artist,
+                        avatar: artistInfo ? artistInfo.avatar : getLatestAlbumCover(album.artist)
                     }
                 });
             }
         });
-    });
-    trackScores.sort((a, b) => b.score - a.score);
-    trackScores.slice(0, 5).forEach(x => tracks.push(x.data));
+        artistScores.sort((a, b) => b.score - a.score);
+        artistScores.slice(0, 5).forEach(x => artists.push(x.data));
 
-    // --- Альбомы / синглы / EP ---
-    const albumScores = [];
-    allAlbums.forEach(album => {
-        const sTitle = fuzzyScore(raw, album.title);
-        const sArtist = fuzzyScore(raw, album.artist);
-        const score = Math.max(sTitle, sArtist * 0.82);
-        if (score >= SEARCH_MIN_SCORE) {
-            albumScores.push({ score, data: album });
-        }
-    });
-    albumScores.sort((a, b) => b.score - a.score);
-    albumScores.slice(0, 5).forEach(x => albums.push(x.data));
-
-    // --- Исполнители ---
-    const seenArtists = new Set();
-    const artistScores = [];
-    allAlbums.forEach(album => {
-        if (seenArtists.has(album.artist)) return;
-        const score = fuzzyScore(raw, album.artist);
-        if (score >= SEARCH_MIN_SCORE) {
-            seenArtists.add(album.artist);
-            const artistInfo = artistsMap[album.artist];
-            artistScores.push({
-                score,
-                data: {
-                    name: album.artist,
-                    avatar: artistInfo ? artistInfo.avatar : getLatestAlbumCover(album.artist)
-                }
-            });
-        }
-    });
-    artistScores.sort((a, b) => b.score - a.score);
-    artistScores.slice(0, 5).forEach(x => artists.push(x.data));
-
-    return { tracks, albums, artists };
-}
+        return { tracks, albums, artists };
+    }
 
     function renderSearchResults(query) {
         const results = performSearch(query);
@@ -1107,6 +1462,7 @@ function performSearch(query) {
 
         const trackEl = document.getElementById('aoy-track');
         trackEl.addEventListener('click', () => {
+            clearManualContext();
             if (album && track) {
                 stopGlobalShuffle();
                 currentAlbum = album;
@@ -1144,9 +1500,6 @@ function performSearch(query) {
         const targetSlide = allSlides[index];
         currentSlide = index;
 
-        // Смещаем трек на реальную позицию слайда. Так соседние панели не
-        // проваливаются/исчезают при перелистывании и корректно работают
-        // даже когда ширина карусели меняется адаптивно.
         carouselTrack.style.transform = `translate3d(-${targetSlide.offsetLeft}px, 0, 0)`;
 
         allSlides.forEach((slide, i) => {
@@ -1237,6 +1590,8 @@ function performSearch(query) {
     audio.volume = 0.7;
     updateVolumeUI();
     loadFavorites();
+    loadBlockedTracks();
+    initContextMenu();
 
     (function initPath() {
         const params = new URLSearchParams(window.location.search);
@@ -1255,9 +1610,10 @@ function performSearch(query) {
         fetch('track-covers.json').then(r => r.json()).catch(() => []),
         fetch('critics.json').then(r => r.json()).catch(() => []),
         fetch('artist-of-year.json').then(r => r.json()).catch(() => null),
-        fetch('live_text.json').then(r => r.json()).catch(() => ({}))
+        fetch('live_text.json').then(r => r.json()).catch(() => ({})),
+        fetch('release-info.json').then(r => r.json()).catch(() => ({}))
     ])
-    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData, liveData]) => {
+    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData, liveData, releaseInfoData]) => {
         allAlbums = albumsData;
         artistsMap = {};
         artistsData.forEach(a => { artistsMap[a.name] = a; });
@@ -1267,6 +1623,7 @@ function performSearch(query) {
         trackCoverData.forEach(t => { trackCovers[t.file] = t.cover; });
         criticsData = critics;
         liveTexts = liveData || {};
+        releaseInfo = releaseInfoData || {};
 
         buildUniqueArtists(albumsData);
         buildPlaylists();
@@ -1557,6 +1914,7 @@ function performSearch(query) {
             if (audio.paused) audio.play();
             else audio.pause();
         } else {
+            clearManualContext();
             stopGlobalShuffle();
             currentAlbum = {
                 artist: tracks[0]?.artist || 'Playlist',
@@ -1595,6 +1953,7 @@ function performSearch(query) {
         const allTracks = [];
         allAlbums.forEach(album => {
             album.tracks.forEach(track => {
+                if (isBlocked(track.file)) return;
                 allTracks.push({
                     ...track, artist: album.artist,
                     cover: getTrackCover(track.file, [album]), albumTitle: album.title
@@ -1618,6 +1977,7 @@ function performSearch(query) {
         const parsePlays = (str) => parseInt(str.replace(/\s/g, '')) || 0;
         const uniqueMap = new Map();
         allTracks.forEach(track => {
+            if (isBlocked(track.file)) return;
             if (!uniqueMap.has(track.file)) uniqueMap.set(track.file, track);
             else {
                 const existing = uniqueMap.get(track.file);
@@ -1692,6 +2052,9 @@ function performSearch(query) {
         tracks.forEach((track, index) => {
             const row = document.createElement('li');
             row.className = 'track-row';
+            row.dataset.file = track.file;
+            if (track.artist) row.dataset.artist = track.artist;
+            if (isBlocked(track.file)) row.classList.add('is-blocked');
             let rowHTML = `<span class="track-num">${index + 1}</span>`;
             rowHTML += `<img class="track-cover" src="photo/${track.cover}" alt="" onerror="this.style.display='none'">`;
             rowHTML += `<div class="track-title-col"><span>${track.title}</span><span class="track-artist">${track.artist}</span></div>`;
@@ -1727,6 +2090,7 @@ function performSearch(query) {
                     else audio.pause();
                     return;
                 }
+                clearManualContext();
                 currentAlbum = {
                     artist: track.artist,
                     cover: track.cover,
@@ -1763,6 +2127,7 @@ function performSearch(query) {
                 if (audio.paused) audio.play();
                 else audio.pause();
             } else {
+                clearManualContext();
                 stopGlobalShuffle();
                 currentAlbum = {
                     artist: tracks[0].artist,
@@ -1896,6 +2261,9 @@ function performSearch(query) {
         album.tracks.forEach((track, index) => {
             const row = document.createElement('li');
             row.className = 'track-row';
+            row.dataset.file = track.file;
+            row.dataset.artist = album.artist;
+            if (isBlocked(track.file)) row.classList.add('is-blocked');
             const isFav = isFavorite({
                 file: track.file, title: track.title, artist: album.artist,
                 cover: album.cover, albumTitle: album.title,
@@ -1947,6 +2315,7 @@ function performSearch(query) {
     }
 
     function playAlbumFromModal(album, index = 0) {
+        clearManualContext();
         stopGlobalShuffle();
         currentAlbum = album;
         playTrackByIndex(index);
@@ -2058,6 +2427,8 @@ function performSearch(query) {
             lyricsText.innerHTML = '';
             lyricsText.appendChild(pre);
         }
+
+        updateReleaseInfoBlock(track);
     }
 
     function updateKaraokeLines() {
@@ -2104,10 +2475,13 @@ function performSearch(query) {
                 });
             });
         });
-        return allTracks.sort(() => Math.random() - 0.5);
+        return allTracks
+            .filter(t => !isBlocked(t.file))
+            .sort(() => Math.random() - 0.5);
     }
 
     function startGlobalShuffle() {
+        clearManualContext();
         globalPlaylist = buildGlobalPlaylist();
         if (globalPlaylist.length === 0) return;
         globalCurrentIndex = 0;
@@ -2155,7 +2529,18 @@ function performSearch(query) {
         else { audio.pause(); updatePlayPauseIcon(false); }
         savePlayerState();
     }
+
     function nextTrack() {
+        if (manualQueue.length > 0) {
+            const item = manualQueue.shift();
+            playManualItem(item);
+            return;
+        }
+
+        if (manualResumeState) {
+            restoreManualResume();
+        }
+
         if (isGlobalShuffle) { globalNext(); return; }
         if (!currentAlbum || currentAlbum.tracks.length === 0) return;
         if (repeat === 'one') {
@@ -2194,6 +2579,14 @@ function performSearch(query) {
     }
 
     function prevTrack() {
+        if (manualResumeState) {
+            restoreManualResume();
+            if (currentAlbum && currentAlbum.tracks && currentAlbum.tracks[currentTrackIndex]) {
+                loadAndPlay(currentAlbum.tracks[currentTrackIndex]);
+            }
+            return;
+        }
+
         if (isGlobalShuffle) { globalPrev(); return; }
         if (!currentAlbum || currentAlbum.tracks.length === 0) return;
         if (shuffle && history.length > 1) {
@@ -2342,8 +2735,6 @@ function performSearch(query) {
         document.body.classList.toggle('lyrics-open', willOpen);
 
         if (willOpen) {
-            // Каждый новый вход в «Сейчас играет» начинается с компактной
-            // очереди — один следующий трек виден сразу.
             queueExpanded = false;
             renderQueue();
         }
@@ -2395,8 +2786,6 @@ function performSearch(query) {
 
         queueExpanded = !queueExpanded;
 
-        // Не перерисовываем всю очередь при обычном раскрытии/сворачивании:
-        // так кнопка никогда не теряет фокус/событие, а список плавно меняет состояние.
         if (queueFull) queueFull.classList.toggle('hidden', !queueExpanded);
         queueToggle.textContent = queueExpanded
             ? 'Свернуть'
@@ -2413,11 +2802,25 @@ function performSearch(query) {
         }
     });
 
+    // ---------- КЛИК ПО ОБЛОЖКЕ (текущий трек) ----------
     lyricsCover.addEventListener('click', () => {
         if (!lyricsCover.src) return;
         imageModalImg.src = lyricsCover.src;
         imageModal.classList.remove('hidden');
     });
+
+    // ---------- КЛИК ПО КАРТИНКЕ В БЛОКЕ «О РЕЛИЗЕ» ----------
+    // Открывает её на весь экран через тот же image-modal, что и обложки.
+    (function initReleaseInfoImageClick() {
+        const releaseInfoImage = document.getElementById('release-info-image');
+        if (!releaseInfoImage) return;
+        releaseInfoImage.addEventListener('click', () => {
+            if (!releaseInfoImage.src) return;
+            if (releaseInfoImage.style.display === 'none') return;
+            imageModalImg.src = releaseInfoImage.src;
+            imageModal.classList.remove('hidden');
+        });
+    })();
 
     // ---------- ПОИСК ----------
     if (searchInput && searchResults) {
@@ -2476,6 +2879,7 @@ function performSearch(query) {
                     const idx = album.tracks.findIndex(t => t.file === file);
                     if (idx !== -1) {
                         closeSearch();
+                        clearManualContext();
                         stopGlobalShuffle();
                         currentAlbum = album;
                         playTrackByIndex(idx);
@@ -2577,6 +2981,9 @@ function performSearch(query) {
         topTracks.forEach((track, idx) => {
             const row = document.createElement('li');
             row.className = 'track-row';
+            row.dataset.file = track.file;
+            row.dataset.artist = artistName;
+            if (isBlocked(track.file)) row.classList.add('is-blocked');
             row.innerHTML = `
                 <img class="track-cover" src="photo/${track.cover}" alt="" onerror="this.style.display='none'">
                 <span class="track-num">${idx + 1}</span>
@@ -2585,6 +2992,7 @@ function performSearch(query) {
                 <span class="track-duration">${track.duration || ''}</span>
             `;
             row.addEventListener('click', () => {
+                clearManualContext();
                 stopGlobalShuffle();
                 const allTracks = artistAlbums.flatMap(album =>
                     album.tracks.map(t => ({
@@ -2606,6 +3014,7 @@ function performSearch(query) {
         });
 
         artistPlayBtn.onclick = () => {
+            clearManualContext();
             stopGlobalShuffle();
             const allTracks = artistAlbums.flatMap(album =>
                 album.tracks.map(t => ({
@@ -2696,12 +3105,14 @@ function performSearch(query) {
     });
 
     window.playTrack = (track, album) => {
+        clearManualContext();
         stopGlobalShuffle();
         currentAlbum = album;
         const index = album.tracks.findIndex(t => t.file === track.file);
         if (index !== -1) playTrackByIndex(index);
     };
-        // ═══════════════════════════════════════════════
+
+    // ═══════════════════════════════════════════════
     // ЭКВАЛАЙЗЕР — v4 (Firefox-safe)
     // ═══════════════════════════════════════════════
 
@@ -2716,7 +3127,7 @@ function performSearch(query) {
         { freq: 12000, label: '12K', type: 'highshelf' },
     ];
 
-    const EQ_MAX_DB = 40;   // было 12
+    const EQ_MAX_DB = 40;
 
     const EQ_PRESETS = {
         flat:       { label: 'Flat',        gains: [0, 0, 0, 0, 0, 0, 0, 0] },
@@ -2778,14 +3189,6 @@ function performSearch(query) {
         } catch (e) {}
     }
 
-    /**
-     * ЕДИНСТВЕННАЯ точка создания графа. Firefox-safe:
-     *  1) `latencyHint: 'playback'` — большой буфер, стабильно
-     *  2) пауза перед createMediaElementSource
-     *  3) явные channelCount/channelCountMode
-     *  4) без DynamicsCompressor (в Firefox он любит добавлять латентность)
-     *  5) при любой ошибке — ctx.close() и больше не пытаемся
-     */
     async function initEqAudioGraph() {
         if (EQ.initAttempted) return EQ.healthy;
         EQ.initAttempted = true;
@@ -2797,29 +3200,23 @@ function performSearch(query) {
             return false;
         }
 
-        // Защита от чужого графа
         if (window.__fartifyAudioGraphCreated) {
             console.warn('[EQ] Граф уже создан другим кодом — EQ отключён, звук не тронут.');
             EQ.healthy = false;
             return false;
         }
 
-        // Запоминаем состояние
         const wasPlaying = !audio.paused;
         const savedTime  = audio.currentTime;
         let ctx = null;
 
         try {
-            // ⚠️ Пауза ОБЯЗАТЕЛЬНА — иначе Firefox параллелит два пути вывода
             audio.pause();
 
-            // latencyHint: 'playback' = большой буфер, без рассинхронов
             ctx = new Ctx({ latencyHint: 'playback' });
 
             const source = ctx.createMediaElementSource(audio);
 
-            // Явно фиксируем стерео-режим — иначе Firefox иногда
-            // размножает каналы при активных драйверных эффектах
             try {
                 source.channelCount = 2;
                 source.channelCountMode = 'explicit';
@@ -2835,18 +3232,14 @@ function performSearch(query) {
                 return f;
             });
 
-            // Собираем граф: source → f0 → ... → fN → destination
-            // (без компрессора — он нам не нужен, а Firefox его не любит)
             source.connect(filters[0]);
             for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
             filters[filters.length - 1].connect(ctx.destination);
 
-            // Ждём, пока контекст реально в состоянии running
             if (ctx.state === 'suspended') {
                 await ctx.resume();
             }
 
-            // Восстанавливаем позицию и (если играло) продолжаем
             audio.currentTime = savedTime;
             if (wasPlaying) {
                 await audio.play().catch(() => {});
@@ -2863,13 +3256,11 @@ function performSearch(query) {
 
         } catch (e) {
             console.error('[EQ] Ошибка создания графа. Полный откат:', e);
-            // Жёсткий откат: закрываем контекст, чистим ссылки
             try { if (ctx) await ctx.close(); } catch (_) {}
             EQ.ctx = null;
             EQ.source = null;
             EQ.filters = [];
             EQ.healthy = false;
-            // Пытаемся вернуть воспроизведение на «прямой» путь
             try {
                 audio.currentTime = savedTime;
                 if (wasPlaying) audio.play().catch(() => {});
@@ -2970,7 +3361,6 @@ function performSearch(query) {
 
         eqPowerBtn.addEventListener('click', async () => {
             if (!EQ.enabled) {
-                // Включаем
                 const ok = await initEqAudioGraph();
                 if (!ok) {
                     updateEqMasterUI();
@@ -2980,8 +3370,6 @@ function performSearch(query) {
                 if (EQ.ctx.state === 'suspended') EQ.ctx.resume().catch(() => {});
                 applyAllEqGains(false);
             } else {
-                // Выключаем = обнуляем гейны, но граф оставляем (иначе
-                // Firefox начнёт снова путать пути вывода)
                 EQ.enabled = false;
                 applyAllEqGains(true);
             }
@@ -3067,7 +3455,6 @@ function performSearch(query) {
         eqPanel.classList.remove('hidden');
         eqPanel.setAttribute('aria-hidden', 'false');
         if (eqBtn) eqBtn.setAttribute('aria-expanded', 'true');
-        // НИЧЕГО не инициализируем — только показываем UI
     }
 
     function closeEqPanel() {
@@ -3083,16 +3470,12 @@ function performSearch(query) {
         else closeEqPanel();
     }
 
-    // ---------- Init ----------
     loadEqState();
     buildEqUI();
     updateAllEqBandUI();
     updateEqPresetUI();
     updateEqMasterUI();
 
-    // ⚠️ ВАЖНО: если в localStorage сохранилось enabled=true — НЕ включаем
-    // автоматически. Иначе Firefox создаст граф при загрузке страницы без
-    // жеста пользователя → гарантированное дублирование.
     if (EQ.enabled && !EQ.healthy) {
         EQ.enabled = false;
         saveEqState();

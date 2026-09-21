@@ -792,5 +792,77 @@
                 "plays": "78 606"
             }
         ]
+    },
+    {
+        "title": "Исихия Гладуна",
+        "artist": "Вонючий ловелас",
+        "cover": "30.png",
+        "date": "2026-09-21",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Гладун Дiма",
+                "file": "99.mp3",
+                "duration": "1:12",
+                "plays": "58 321"
+            },
+            {
+                "title": "Сергей Физрун",
+                "file": "100.mp3",
+                "duration": "2:24",
+                "plays": "62 073"
+            },
+            {
+                "title": "Падла",
+                "file": "101.mp3",
+                "duration": "1:31",
+                "plays": "73 431"
+            },
+            {
+                "title": "Гоблин из Вращенец",
+                "file": "102.mp3",
+                "duration": "2:04",
+                "plays": "80 302"
+            },
+            {
+                "title": "Пена",
+                "file": "103.mp3",
+                "duration": "2:12",
+                "plays": "68 346"
+            },
+            {
+                "title": "Дохтур ПАХметолог",
+                "file": "104.mp3",
+                "duration": "1:47",
+                "plays": "43 234"
+            },
+            {
+                "title": "Неожиданно приятный гость",
+                "file": "105.mp3",
+                "duration": "3:07",
+                "plays": "44 396"
+            },
+            {
+                "title": "ЭдоАпокалипсис",
+                "file": "106.mp3",
+                "duration": "1:46",
+                "plays": "69 900"
+            }
+        ]
+    },
+    {
+        "title": "Кресло/Кулачек",
+        "artist": "RadioGladoon",
+        "cover": "29.png",
+        "date": "2026-09-21",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Кресло/Кулачек",
+                "file": "98.mp3",
+                "duration": "2:15",
+                "plays": "92 436"
+            }
+        ]
     }
 ]

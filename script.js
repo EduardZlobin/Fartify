@@ -1667,6 +1667,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const artistName = decodeURIComponent(segments[1]);
             stopGlobalShuffle();
             showArtistPage(artistName);
+        } else if (segments[0] === 'track' && segments[1]) {
+            // ← НОВАЯ ВЕТКА: красивый URL /track/Название_Трека
+            let trackSlug = segments[1];
+            try { trackSlug = decodeURIComponent(trackSlug); } catch (e) {}
+            openTrackBySlug(trackSlug);
         } else if (segments[0] === 'release' && segments[1]) {
             const releaseTitle = decodeURIComponent(segments[1]);
             const album = allAlbums.find(a => a.title === releaseTitle);
@@ -1732,6 +1737,107 @@ document.addEventListener('DOMContentLoaded', () => {
         if (count >= 2 && count <= 3) return 'Макси-сингл';
         if (count >= 4 && count <= 8) return 'EP';
         return 'Альбом';
+    }
+
+    // ---------- PRETTY URLS (/track/Название_Трека) ----------
+
+    /**
+     * Нормализация для СРАВНЕНИЯ. Должна совпадать с normalize() в Cloudflare Worker.
+     * «Болит_Голова», «болит-голова», «БОЛИТ ГОЛОВА» → «болит голова»
+     */
+    function normalizeTrackSlug(str) {
+        return String(str || '')
+            .normalize('NFKC')
+            .toLowerCase()
+            .replace(/[_\u2010-\u2015\-]+/g, ' ')
+            .replace(/[^\p{L}\p{N}\s]/gu, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    /**
+     * Генерация slug'а для URL. Пробелы → подчёркивания, пунктуация убирается.
+     * «Болит голова» → «Болит_голова»
+     */
+    function slugifyTrackTitle(title) {
+        const cleaned = String(title || '')
+            .normalize('NFKC')
+            .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+            .trim()
+            .replace(/\s+/g, '_');
+        return cleaned || 'track';
+    }
+
+    /**
+     * Поиск трека и альбома по slug'у из URL.
+     */
+    function findTrackBySlug(slug) {
+        const target = normalizeTrackSlug(slug);
+        if (!target) return null;
+        for (const album of allAlbums) {
+            if (!album || !Array.isArray(album.tracks)) continue;
+            for (const track of album.tracks) {
+                if (!track || !track.title) continue;
+                if (normalizeTrackSlug(track.title) === target) {
+                    return { track, album };
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Собирает красивую ссылку на трек.
+     * На fartify.vip → https://fartify.vip/track/Болит_Голова
+     * На GH Pages    → https://eduardzlobin.github.io/Fartify/track/Болит_Голова
+     */
+    function buildTrackPrettyUrl(track) {
+        if (!track || !track.title) return window.location.href;
+        const slug = slugifyTrackTitle(track.title);
+        const origin = window.location.origin;
+        const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
+        return `${origin}${base}/track/${encodeURIComponent(slug)}`;
+    }
+
+    /**
+     * Открывает трек по slug'у из адресной строки.
+     */
+    function openTrackBySlug(slug) {
+        const found = findTrackBySlug(slug);
+
+        // Трек не найден — тихо показываем главную, ничего не ломаем
+        if (!found) {
+            modal.classList.add('hidden');
+            openedModalAlbum = null;
+            playlistModal.classList.add('hidden');
+            openedPlaylistTitle = null;
+            artistPage.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+            updatePlaybackUI();
+            callFitAfterRender();
+            return;
+        }
+
+        const { track, album } = found;
+        const idx = album.tracks.findIndex(t => t.file === track.file);
+        if (idx === -1) return;
+
+        clearManualContext();
+        stopGlobalShuffle();
+
+        currentAlbum = album;
+        playTrackByIndex(idx);
+        addToRecent(album);
+
+        // Всегда показываем главную — плеер уже играет нужный трек
+        modal.classList.add('hidden');
+        openedModalAlbum = null;
+        playlistModal.classList.add('hidden');
+        openedPlaylistTitle = null;
+        artistPage.classList.add('hidden');
+        mainContent.classList.remove('hidden');
+        updatePlaybackUI();
+        callFitAfterRender();
     }
 
     function parseDurationToSeconds(durStr) {
@@ -3280,7 +3386,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // ---------- Генерация карточки ----------
-        // Возвращает { dataUrl, colors: [colorA, colorB] }
         async function generateShareCard(config) {
             const W = 1080, H = 1350;
             const canvas = document.createElement('canvas');
@@ -3467,12 +3572,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // ---------- Ссылки ----------
+        // Для треков — красивый URL /track/Название_Трека (совпадает с CF Worker'ом).
+        // Для остальных — query-параметры (backward-compatible).
         function buildShareUrl(type, data) {
+            if (type === 'track') {
+                if (data && data.title) {
+                    const slug = slugifyTrackTitle(data.title);
+                    const origin = window.location.origin;
+                    const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
+                    return `${origin}${base}/track/${encodeURIComponent(slug)}`;
+                }
+                // Фолбэк, если title не передан
+                const fallback = new URL(window.location.origin + BASE_PATH);
+                fallback.searchParams.set('share', 'track');
+                if (data && data.file) fallback.searchParams.set('file', data.file);
+                return fallback.toString();
+            }
+
             const url = new URL(window.location.origin + BASE_PATH);
             url.searchParams.set('share', type);
-            if (type === 'track') {
-                url.searchParams.set('file', data.file);
-            } else if (type === 'playlist') {
+            if (type === 'playlist') {
                 url.searchParams.set('title', data.title);
                 if (data.cover) url.searchParams.set('cover', data.cover);
             } else if (type === 'release') {
@@ -3629,7 +3748,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (shareModalTitle) shareModalTitle.textContent = 'Поделиться треком';
             if (shareModalSubtitle) shareModalSubtitle.textContent = track.title || '';
 
-            const shareUrl = buildShareUrl('track', { file: track.file });
+            // ← ИЗМЕНЕНО: передаём title, чтобы ссылка стала /track/Название_Трека
+            const shareUrl = buildShareUrl('track', {
+                file: track.file,
+                title: track.title
+            });
             if (shareLinkInput) shareLinkInput.value = shareUrl;
 
             if (sharePreviewImg) {

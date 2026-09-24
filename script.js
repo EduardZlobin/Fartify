@@ -3607,7 +3607,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const chipW = chipTextWidth + 60;
             const chipH = 62;
             const chipX = W - 80 - chipW;
-            const chipY = H - 165;
+            const chipY = H - 265;
 
             const chipGrad = ctx.createLinearGradient(chipX, chipY, chipX + chipW, chipY + chipH);
             chipGrad.addColorStop(0, `rgb(${colorA[0]},${colorA[1]},${colorA[2]})`);

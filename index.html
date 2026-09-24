@@ -224,6 +224,15 @@
                         <path d="M4 6h16M4 12h16M4 18h10"/>
                     </svg>
                 </button>
+                <button id="share-btn" class="control-btn" title="Поделиться">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                </button>
                 <button id="eq-btn" class="control-btn eq-btn" title="Эквалайзер" aria-expanded="false" aria-controls="equalizer-panel">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                         <line x1="4"  y1="10" x2="4"  y2="14"/>
@@ -379,11 +388,22 @@
                         <span id="modal-type" class="modal-type-label">Тип</span>
                         <h2 id="modal-title">Название</h2>
                         <div id="modal-meta" class="modal-meta"></div>
-                        <button id="modal-play-btn" class="modal-play-btn">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="6,3 20,12 6,21"/>
-                            </svg>
-                        </button>
+                        <div class="modal-actions">
+                            <button id="modal-play-btn" class="modal-play-btn">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <polygon points="6,3 20,12 6,21"/>
+                                </svg>
+                            </button>
+                            <button id="modal-share-btn" class="modal-share-btn" title="Поделиться релизом" aria-label="Поделиться релизом">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="18" cy="5" r="3"/>
+                                    <circle cx="6" cy="12" r="3"/>
+                                    <circle cx="18" cy="19" r="3"/>
+                                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <span id="modal-rating" class="modal-rating">0/10</span>
                 </div>
@@ -452,6 +472,16 @@
 
     <!-- Контекстное меню для треков -->
     <div id="context-menu" class="context-menu hidden" role="menu">
+        <button type="button" class="context-menu-item" data-action="share">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            <span>Поделиться</span>
+        </button>
         <button type="button" class="context-menu-item" data-action="add-queue">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                 <line x1="12" y1="5" x2="12" y2="19"/>
@@ -474,6 +504,82 @@
             <span>Убрать из очереди</span>
         </button>
     </div>
+
+    <!-- Модалка генерации карточки -->
+    <div id="share-modal" class="modal hidden">
+        <div class="modal-content share-modal-content">
+            <span class="close" id="share-modal-close">&times;</span>
+
+            <div class="share-modal-header">
+                <h2 id="share-modal-title">Поделиться</h2>
+                <p id="share-modal-subtitle" class="share-modal-subtitle">Красивая карточка готова — отправь друзьям</p>
+            </div>
+
+            <div class="share-preview-wrap">
+                <div id="share-preview-loader" class="share-preview-loader">
+                    <div class="share-spinner"></div>
+                    <span>Рисуем карточку…</span>
+                </div>
+                <img id="share-preview-img" class="share-preview-img hidden" alt="Превью карточки">
+            </div>
+
+            <div class="share-actions">
+                <button class="share-action-btn primary" id="share-download-btn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Скачать картинку
+                </button>
+
+                <button class="share-action-btn" id="share-native-btn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"/>
+                        <circle cx="6" cy="12" r="3"/>
+                        <circle cx="18" cy="19" r="3"/>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                    Поделиться
+                </button>
+
+                <button class="share-action-btn" id="share-copy-btn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    Копировать ссылку
+                </button>
+            </div>
+
+            <div class="share-link-row">
+                <input type="text" id="share-link-input" class="share-link-input" readonly>
+            </div>
+        </div>
+    </div>
+
+    <!-- Отдельный экран, который открывается при переходе по ссылке -->
+<div id="share-view" class="share-view hidden">
+    <div class="share-view-bg"></div>
+    <div class="share-view-grid"></div>
+    <div class="share-view-inner">
+        <div class="share-view-top">
+            <span class="share-view-brand">FARTIFY</span>
+        </div>
+        <div class="share-view-card-wrap">
+            <img id="share-view-card" class="share-view-card" alt="Карточка">
+        </div>
+        <div class="share-view-actions">
+            <button class="share-view-btn primary" id="share-view-listen" type="button">
+                ▶  Слушать в Fartify
+            </button>
+            <button class="share-view-btn" id="share-view-download" type="button">
+                Скачать карточку
+            </button>
+        </div>
+    </div>
+</div>
 
     <!-- SVG-фильтр для жидкого эффекта фона текста -->
     <svg style="position: absolute; width: 0; height: 0;">

@@ -155,8 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // РОУТЕР v2 — базовая защита от петель (объявлено ДО всего,
-    // что может позвать pushState/replaceState)
+    // РОУТЕР v2 — базовая защита от петель
     // ═══════════════════════════════════════════════════════════
 
     let __routerBusy = false;
@@ -212,7 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleRouting() {
-        // ── ЗАЩИТА ОТ РЕЕНТРАНТНОСТИ ──
         if (__routerBusy) return;
         __routerBusy = true;
         try {
@@ -274,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (pl) { openAutoPlaylistModal(pl); return; }
             }
 
-            // ── Неизвестный путь / корень → тихо главная, URL не трогаем ──
+            // Неизвестный путь / корень → тихо главная, URL не трогаем
             showMainContent();
         } catch (err) {
             console.error('[router] handleRouting error:', err);
@@ -1740,7 +1738,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (BASE_PATH !== '/' && !target.startsWith(BASE_PATH)) {
             target = BASE_PATH.replace(/\/$/, '') + target;
         }
-        // НЕ вызываем handleRouting — это сделает загрузчик данных после fetch.
         safeReplaceState(target);
     })();
 
@@ -1790,17 +1787,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- КЛИК ПО <a> ----------
     document.addEventListener('click', function(e) {
-        // Уже кто-то обработал
         if (e.defaultPrevented) return;
-
-        // Только левая кнопка без модификаторов
         if (e.button !== 0) return;
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 
         const target = e.target.closest('a');
         if (!target) return;
 
-        // Специальные ссылки не трогаем
         const tgt = target.getAttribute('target');
         if (tgt && tgt !== '_self') return;
         if (target.hasAttribute('download')) return;
@@ -1902,7 +1895,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const found = findTrackBySlug(slug);
 
         if (!found) {
-            // Трек не найден — тихо главная, URL не трогаем
             showMainContent();
             return;
         }
@@ -1918,7 +1910,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playTrackByIndex(idx);
         addToRecent(album);
 
-        // Показываем главную. URL остаётся /track/... — не трогаем.
+        // Показываем главную, URL не трогаем.
         modal.classList.add('hidden');
         openedModalAlbum = null;
         playlistModal.classList.add('hidden');
@@ -3636,16 +3628,16 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-                function buildShareUrl(type, data) {
+        // ── buildShareUrl: для трека — красивый /track/<slug> ──
+        function buildShareUrl(type, data) {
             if (type === 'track') {
                 if (data && data.title) {
                     const slug = slugifyTrackTitle(data.title);
                     const origin = window.location.origin;
                     const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
-                    // ?share=track=Название_Трека
-                    return `${origin}${base}/?share=track=${encodeURIComponent(slug)}`;
+                    return `${origin}${base}/track/${encodeURIComponent(slug)}`;
                 }
-                // Фолбэк, если title не передан — старое поведение
+                // Фолбэк, если title не передан — старый формат
                 const fallback = new URL(window.location.origin + BASE_PATH);
                 fallback.searchParams.set('share', 'track');
                 if (data && data.file) fallback.searchParams.set('file', data.file);
@@ -3958,53 +3950,26 @@ document.addEventListener('DOMContentLoaded', () => {
         let shareViewDataUrl = null;
         let shareViewFileName = '';
 
-                async function showShareViewFromParams() {
+        async function showShareViewFromParams() {
             const params = new URLSearchParams(window.location.search);
-            const shareRaw = params.get('share');
-            if (!shareRaw) return false;
+            const shareType = params.get('share');
+            if (!shareType) return false;
 
             if (!allAlbums || allAlbums.length === 0) {
                 return false;
             }
 
-            // ── Поддержка нового формата: ?share=track=Название_Трека ──
-            // URLSearchParams отдаёт всё после первого "=" как значение,
-            // поэтому shareRaw === "track=Кресло_Кулачек".
-            let shareType = shareRaw;
-            let trackTitleOverride = null;
-            if (shareRaw.startsWith('track=')) {
-                shareType = 'track';
-                trackTitleOverride = shareRaw.slice('track='.length);
-            }
-
             if (shareType === 'track') {
-                let found = null;
-
-                if (trackTitleOverride) {
-                    // Ищем трек по названию (нормализация та же, что в CF Worker)
-                    const target = normalizeTrackSlug(trackTitleOverride);
-                    if (target) {
-                        for (const album of allAlbums) {
-                            if (!Array.isArray(album.tracks)) continue;
-                            const t = album.tracks.find(x =>
-                                x && x.title && normalizeTrackSlug(x.title) === target
-                            );
-                            if (t) { found = { track: t, album }; break; }
-                        }
-                    }
-                } else {
-                    // Старый формат: ?share=track&file=XXX.mp3
-                    const file = params.get('file');
-                    if (!file) return false;
-                    found = findTrackAndAlbum(file);
-                }
-
+                // Только старый формат: ?share=track&file=XXX.mp3
+                // (Красивый /track/<slug> обрабатывается в handleRouting → openTrackBySlug.)
+                const file = params.get('file');
+                if (!file) return false;
+                const found = findTrackAndAlbum(file);
                 if (!found) {
                     showShareViewLoading('Трек не найден');
                     return true;
                 }
                 const { track, album } = found;
-                // ВАЖНО: лучшая обложка трека
                 const coverFile = getBestTrackCover(track.file);
                 const artistName = track.artist || album.artist;
 

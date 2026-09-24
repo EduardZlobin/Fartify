@@ -1,14 +1,12 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>Fartify</title>
     <script>
-        const path = window.location.pathname;
-        const search = window.location.search;
-        const hash = window.location.hash;
-        window.location.replace('/?path=' + encodeURIComponent(path + search) + hash);
+
+        const target = window.location.pathname + window.location.search + window.location.hash;
+        window.location.replace('/?p=' + encodeURIComponent(target));
     </script>
 </head>
 <body>

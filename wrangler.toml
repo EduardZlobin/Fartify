@@ -1,0 +1,8 @@
+name = "fartify-worker"  # (Имя вашего воркера может быть любым)
+main = "worker.js"       # (Имя вашего основного файла со скриптом)
+compatibility_date = "2026-01-01"
+
+# Добавляем роутинг для перехвата запросов на картинки
+routes = [
+  { pattern = "fartify.vip/og/track/*", custom_domain = true }
+]

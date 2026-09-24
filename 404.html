@@ -1,15 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Перенаправление…</title>
+    <title>Fartify</title>
     <script>
-        var repo = '/Fartify';
-        var path = window.location.pathname.replace(repo, '') || '/';
-        window.location.href = repo + '/?path=' + encodeURIComponent(path);
+        const path = window.location.pathname;
+        const search = window.location.search;
+        const hash = window.location.hash;
+        window.location.replace('/?path=' + encodeURIComponent(path + search) + hash);
     </script>
 </head>
 <body>
-    <p>Перенаправление...</p>
+    <p>Загрузка...</p>
 </body>
 </html>

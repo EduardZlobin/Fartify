@@ -3636,14 +3636,16 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        function buildShareUrl(type, data) {
+                function buildShareUrl(type, data) {
             if (type === 'track') {
                 if (data && data.title) {
                     const slug = slugifyTrackTitle(data.title);
                     const origin = window.location.origin;
                     const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
-                    return `${origin}${base}/track/${encodeURIComponent(slug)}`;
+                    // ?share=track=Название_Трека
+                    return `${origin}${base}/?share=track=${encodeURIComponent(slug)}`;
                 }
+                // Фолбэк, если title не передан — старое поведение
                 const fallback = new URL(window.location.origin + BASE_PATH);
                 fallback.searchParams.set('share', 'track');
                 if (data && data.file) fallback.searchParams.set('file', data.file);
@@ -3956,24 +3958,53 @@ document.addEventListener('DOMContentLoaded', () => {
         let shareViewDataUrl = null;
         let shareViewFileName = '';
 
-        async function showShareViewFromParams() {
+                async function showShareViewFromParams() {
             const params = new URLSearchParams(window.location.search);
-            const shareType = params.get('share');
-            if (!shareType) return false;
+            const shareRaw = params.get('share');
+            if (!shareRaw) return false;
 
             if (!allAlbums || allAlbums.length === 0) {
                 return false;
             }
 
+            // ── Поддержка нового формата: ?share=track=Название_Трека ──
+            // URLSearchParams отдаёт всё после первого "=" как значение,
+            // поэтому shareRaw === "track=Кресло_Кулачек".
+            let shareType = shareRaw;
+            let trackTitleOverride = null;
+            if (shareRaw.startsWith('track=')) {
+                shareType = 'track';
+                trackTitleOverride = shareRaw.slice('track='.length);
+            }
+
             if (shareType === 'track') {
-                const file = params.get('file');
-                if (!file) return false;
-                const found = findTrackAndAlbum(file);
+                let found = null;
+
+                if (trackTitleOverride) {
+                    // Ищем трек по названию (нормализация та же, что в CF Worker)
+                    const target = normalizeTrackSlug(trackTitleOverride);
+                    if (target) {
+                        for (const album of allAlbums) {
+                            if (!Array.isArray(album.tracks)) continue;
+                            const t = album.tracks.find(x =>
+                                x && x.title && normalizeTrackSlug(x.title) === target
+                            );
+                            if (t) { found = { track: t, album }; break; }
+                        }
+                    }
+                } else {
+                    // Старый формат: ?share=track&file=XXX.mp3
+                    const file = params.get('file');
+                    if (!file) return false;
+                    found = findTrackAndAlbum(file);
+                }
+
                 if (!found) {
                     showShareViewLoading('Трек не найден');
                     return true;
                 }
                 const { track, album } = found;
+                // ВАЖНО: лучшая обложка трека
                 const coverFile = getBestTrackCover(track.file);
                 const artistName = track.artist || album.artist;
 

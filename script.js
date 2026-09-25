@@ -229,11 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // /track/<slug>
+            // /track/<slug> — открываем карточку трека (share-view)
             if (segments[0] === 'track' && segments[1]) {
                 const trackSlug = safeDecode(segments[1]);
                 if (trackSlug) {
-                    openTrackBySlug(trackSlug);
+                    openTrackShareView(trackSlug);
                     return;
                 }
             }
@@ -1892,6 +1892,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${origin}${base}/track/${encodeURIComponent(slug)}`;
     }
 
+    // Открывает карточку трека — ту же, что и при ?share=track&file=...
+    // Работает через публичный API initShareFeature (window.fartifyShare.showTrack)
+    function openTrackShareView(slug) {
+        const found = findTrackBySlug(slug);
+
+        if (!found) {
+            showMainContent();
+            return;
+        }
+
+        const { track, album } = found;
+
+        if (window.fartifyShare && typeof window.fartifyShare.showTrack === 'function') {
+            window.fartifyShare.showTrack(track, album);
+        } else {
+            // Fallback — если по какой-то причине share-модуль не загрузился,
+            // просто открываем трек как обычно
+            openTrackBySlug(slug);
+        }
+    }
+
+    // Оставляем для внутренних вызовов (например, из кода, который сам
+    // решает открыть трек по slug без карточки)
     function openTrackBySlug(slug) {
         const found = findTrackBySlug(slug);
 
@@ -1911,7 +1934,6 @@ document.addEventListener('DOMContentLoaded', () => {
         playTrackByIndex(idx);
         addToRecent(album);
 
-        // Показываем главную, URL не трогаем.
         modal.classList.add('hidden');
         openedModalAlbum = null;
         playlistModal.classList.add('hidden');
@@ -3310,6 +3332,88 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ═══════════════════════════════════════════════════════════════
+    // СПОНСОРЫ
+    // ═══════════════════════════════════════════════════════════════
+
+    function loadSponsorsFromJson() {
+        fetch('sponsors.json', { cache: 'no-cache' })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => { if (data) renderSponsors(data); })
+            .catch(() => { /* нет файла — просто скрываем секцию */ });
+    }
+
+    function renderSponsors(data) {
+        const strip    = document.getElementById('sponsors-strip');
+        const track    = document.getElementById('sponsors-marquee-track');
+        const titleEl  = document.getElementById('sponsors-title');
+        if (!strip || !track) return;
+
+        const rawItems = Array.isArray(data) ? data
+                       : (data && Array.isArray(data.items) ? data.items : []);
+
+        const items = rawItems
+            .map(it => typeof it === 'string' ? { name: it } : it)
+            .filter(it => it && typeof it.name === 'string' && it.name.trim().length > 0);
+
+        if (items.length === 0) {
+            strip.style.display = 'none';
+            return;
+        }
+
+        if (titleEl) {
+            const t = (data && typeof data.title === 'string') ? data.title.trim() : '';
+            titleEl.textContent = t;
+            if (!t) titleEl.style.display = 'none';
+        }
+
+        const buildItem = (item) => {
+            const el = document.createElement(item.url ? 'a' : 'span');
+            el.className = 'sponsors-item';
+            if (item.url) {
+                el.href = item.url;
+                el.target = '_blank';
+                el.rel = 'noopener noreferrer';
+                el.dataset.noRouter = '1';
+            }
+            const diamond = document.createElement('span');
+            diamond.className = 'sponsors-diamond';
+            diamond.setAttribute('aria-hidden', 'true');
+            diamond.textContent = '◆';
+
+            const name = document.createElement('span');
+            name.className = 'sponsors-name';
+            name.textContent = item.name;
+
+            el.appendChild(diamond);
+            el.appendChild(name);
+            return el;
+        };
+
+        const setNodes = items.map(buildItem);
+
+        track.innerHTML = '';
+        setNodes.forEach(n => track.appendChild(n.cloneNode(true)));
+        const oneSetWidth = Math.max(track.scrollWidth, 1);
+
+        const containerW = track.parentElement?.clientWidth || window.innerWidth;
+        const targetW    = containerW * 2;
+
+        let repeats = Math.max(1, Math.ceil(targetW / oneSetWidth));
+        if (repeats % 2 !== 0) repeats += 1;
+
+        track.innerHTML = '';
+        for (let i = 0; i < repeats; i++) {
+            setNodes.forEach(n => track.appendChild(n.cloneNode(true)));
+        }
+
+        const totalW   = track.scrollWidth;
+        const halfW    = totalW / 2;
+        const speed    = 75;
+        const duration = Math.max(24, halfW / speed);
+        track.style.animationDuration = duration.toFixed(1) + 's';
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // SHARE FEATURE
     // ═══════════════════════════════════════════════════════════════
     (function initShareFeature() {
@@ -3629,7 +3733,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        // ── buildShareUrl: для трека — красивый /track/<slug> ──
         function buildShareUrl(type, data) {
             if (type === 'track') {
                 if (data && data.title) {
@@ -3638,7 +3741,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
                     return `${origin}${base}/track/${encodeURIComponent(slug)}`;
                 }
-                // Фолбэк, если title не передан — старый формат
                 const fallback = new URL(window.location.origin + BASE_PATH);
                 fallback.searchParams.set('share', 'track');
                 if (data && data.file) fallback.searchParams.set('file', data.file);
@@ -3951,6 +4053,78 @@ document.addEventListener('DOMContentLoaded', () => {
         let shareViewDataUrl = null;
         let shareViewFileName = '';
 
+        // ★ Универсальная функция: открывает share-view для конкретного трека
+        async function showShareViewForTrack(track, album) {
+            if (!track || !track.file) return;
+
+            const coverFile = getBestTrackCover(track.file);
+            const artistName = track.artist || album.artist;
+
+            mainContent.classList.add('hidden');
+            artistPage.classList.add('hidden');
+            modal.classList.add('hidden');
+            playlistModal.classList.add('hidden');
+            shareView.classList.remove('hidden');
+            document.body.classList.add('share-view-open');
+            document.body.style.paddingBottom = '0';
+
+            shareViewCard.setAttribute('data-loading', '1');
+            shareViewCard.removeAttribute('src');
+
+            try {
+                const result = await generateShareCard({
+                    type: 'track',
+                    title: track.title || 'Без названия',
+                    artist: artistName,
+                    cover: coverFile,
+                    metaPlays: track.plays || '',
+                    metaDuration: track.duration || '',
+                    metaDate: album.date || ''
+                });
+                applyShareViewTheme(result.colors);
+                shareViewCard.removeAttribute('data-loading');
+                shareViewCard.src = result.dataUrl;
+                shareViewDataUrl = result.dataUrl;
+                const safeName = String(track.title || 'track')
+                    .replace(/[\\/:*?"<>|]/g, '_')
+                    .slice(0, 60) || 'track';
+                shareViewFileName = `fartify-${safeName}.png`;
+            } catch (e) {
+                console.error('[ShareView] Ошибка:', e);
+                shareViewCard.removeAttribute('data-loading');
+            }
+
+            if (shareViewListen) {
+                shareViewListen.onclick = () => {
+                    resetShareViewTheme();
+                    document.body.classList.remove('share-view-open');
+                    document.body.style.paddingBottom = '';
+                    shareView.classList.add('hidden');
+                    safeReplaceState(BASE_PATH);
+                    mainContent.classList.remove('hidden');
+                    clearManualContext();
+                    stopGlobalShuffle();
+                    currentAlbum = album;
+                    const idx = album.tracks.findIndex(t => t.file === track.file);
+                    if (idx !== -1) playTrackByIndex(idx);
+                    updatePlaybackUI();
+                    callFitAfterRender();
+                };
+            }
+
+            if (shareViewDownload) {
+                shareViewDownload.onclick = () => {
+                    if (!shareViewDataUrl) return;
+                    const a = document.createElement('a');
+                    a.href = shareViewDataUrl;
+                    a.download = shareViewFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                };
+            }
+        }
+
         async function showShareViewFromParams() {
             const params = new URLSearchParams(window.location.search);
             const shareType = params.get('share');
@@ -3961,8 +4135,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (shareType === 'track') {
-                // Только старый формат: ?share=track&file=XXX.mp3
-                // (Красивый /track/<slug> обрабатывается в handleRouting → openTrackBySlug.)
                 const file = params.get('file');
                 if (!file) return false;
                 const found = findTrackAndAlbum(file);
@@ -3971,73 +4143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return true;
                 }
                 const { track, album } = found;
-                const coverFile = getBestTrackCover(track.file);
-                const artistName = track.artist || album.artist;
-
-                mainContent.classList.add('hidden');
-                artistPage.classList.add('hidden');
-                modal.classList.add('hidden');
-                playlistModal.classList.add('hidden');
-                shareView.classList.remove('hidden');
-                document.body.classList.add('share-view-open');
-                document.body.style.paddingBottom = '0';
-
-                shareViewCard.setAttribute('data-loading', '1');
-                shareViewCard.removeAttribute('src');
-
-                try {
-                    const result = await generateShareCard({
-                        type: 'track',
-                        title: track.title || 'Без названия',
-                        artist: artistName,
-                        cover: coverFile,
-                        metaPlays: track.plays || '',
-                        metaDuration: track.duration || '',
-                        metaDate: album.date || ''
-                    });
-                    applyShareViewTheme(result.colors);
-                    shareViewCard.removeAttribute('data-loading');
-                    shareViewCard.src = result.dataUrl;
-                    shareViewDataUrl = result.dataUrl;
-                    const safeName = String(track.title || 'track')
-                        .replace(/[\\/:*?"<>|]/g, '_')
-                        .slice(0, 60) || 'track';
-                    shareViewFileName = `fartify-${safeName}.png`;
-                } catch (e) {
-                    console.error('[ShareView] Ошибка:', e);
-                    shareViewCard.removeAttribute('data-loading');
-                }
-
-                if (shareViewListen) {
-                    shareViewListen.onclick = () => {
-                        resetShareViewTheme();
-                        document.body.classList.remove('share-view-open');
-                        document.body.style.paddingBottom = '';
-                        shareView.classList.add('hidden');
-                        safeReplaceState(BASE_PATH);
-                        mainContent.classList.remove('hidden');
-                        clearManualContext();
-                        stopGlobalShuffle();
-                        currentAlbum = album;
-                        const idx = album.tracks.findIndex(t => t.file === track.file);
-                        if (idx !== -1) playTrackByIndex(idx);
-                        updatePlaybackUI();
-                        callFitAfterRender();
-                    };
-                }
-
-                if (shareViewDownload) {
-                    shareViewDownload.onclick = () => {
-                        if (!shareViewDataUrl) return;
-                        const a = document.createElement('a');
-                        a.href = shareViewDataUrl;
-                        a.download = shareViewFileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                    };
-                }
-
+                await showShareViewForTrack(track, album);
                 return true;
             }
 
@@ -4217,10 +4323,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
+        // ★ Публичный API — добавляем showTrack для роутера
         window.fartifyShare = {
             track: (track, album) => openShareForTrack(track, album),
             playlist: (config) => openShareForPlaylist(config),
             release: (album, type) => openShareForRelease(album, type),
+            showTrack: (track, album) => showShareViewForTrack(track, album),
             current: () => {
                 if (currentTrackMeta) {
                     openShareForTrack(currentTrackMeta, currentAlbum);
@@ -4665,97 +4773,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!eqPanel) return;
         if (eqPanel.classList.contains('hidden')) openEqPanel();
         else closeEqPanel();
-    }
-
-    // ---------- СПОНСОРЫ ----------
-
-    function loadSponsorsFromJson() {
-        fetch('sponsors.json', { cache: 'no-cache' })
-            .then(r => r.ok ? r.json() : null)
-            .then(data => { if (data) renderSponsors(data); })
-            .catch(() => { /* нет файла — просто скрываем секцию */ });
-    }
-
-    function renderSponsors(data) {
-        const strip    = document.getElementById('sponsors-strip');
-        const track    = document.getElementById('sponsors-marquee-track');
-        const titleEl  = document.getElementById('sponsors-title');
-        if (!strip || !track) return;
-
-        // Нормализуем данные: строки → { name }
-        const rawItems = Array.isArray(data) ? data
-                       : (data && Array.isArray(data.items) ? data.items : []);
-
-        const items = rawItems
-            .map(it => typeof it === 'string' ? { name: it } : it)
-            .filter(it => it && typeof it.name === 'string' && it.name.trim().length > 0);
-
-        if (items.length === 0) {
-            strip.style.display = 'none';
-            return;
-        }
-
-        // Заголовок
-        if (titleEl) {
-            const t = (data && typeof data.title === 'string') ? data.title.trim() : '';
-            titleEl.textContent = t;
-            if (!t) titleEl.style.display = 'none';
-        }
-
-        // Фабрика одного узла-спонсора
-        const buildItem = (item) => {
-            const el = document.createElement(item.url ? 'a' : 'span');
-            el.className = 'sponsors-item';
-            if (item.url) {
-                el.href = item.url;
-                el.target = '_blank';
-                el.rel = 'noopener noreferrer';
-                el.dataset.noRouter = '1'; // чтобы не перехватывал клик-роутер
-            }
-            const diamond = document.createElement('span');
-            diamond.className = 'sponsors-diamond';
-            diamond.setAttribute('aria-hidden', 'true');
-            diamond.textContent = '◆';
-
-            const name = document.createElement('span');
-            name.className = 'sponsors-name';
-            name.textContent = item.name;
-
-            el.appendChild(diamond);
-            el.appendChild(name);
-            return el;
-        };
-
-        // Собираем эталонный набор узлов (не вставляем)
-        const setNodes = items.map(buildItem);
-
-        // Очищаем трек
-        track.innerHTML = '';
-
-        // Прикидочно: сначала вставляем один набор, чтобы измерить ширину
-        setNodes.forEach(n => track.appendChild(n.cloneNode(true)));
-        const oneSetWidth = Math.max(track.scrollWidth, 1);
-
-        const containerW = track.parentElement?.clientWidth || window.innerWidth;
-        const targetW    = containerW * 2;
-
-        // Сколько наборов нужно, чтобы заведомо заполнить любую ширину
-        let repeats = Math.max(1, Math.ceil(targetW / oneSetWidth));
-        // Чётное — чтобы анимация -50% была бесшовной
-        if (repeats % 2 !== 0) repeats += 1;
-
-        // Финальная сборка
-        track.innerHTML = '';
-        for (let i = 0; i < repeats; i++) {
-            setNodes.forEach(n => track.appendChild(n.cloneNode(true)));
-        }
-
-        // Скорость прокрутки — постоянная, независимо от количества спонсоров
-        const totalW   = track.scrollWidth;
-        const halfW    = totalW / 2;
-        const speed    = 75; // px/s
-        const duration = Math.max(24, halfW / speed);
-        track.style.animationDuration = duration.toFixed(1) + 's';
     }
 
     loadEqState();

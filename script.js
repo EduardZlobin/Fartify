@@ -132,11 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSlide = 0;
     let carouselTimer = null;
 
-    // === Context menu / blocked / manual queue / release info ===
     let blockedTracks = new Set();
-    let manualQueue = [];            // [{ id, track, album }]
+    let manualQueue = [];
     let manualQueueIdCounter = 0;
-    let manualResumeState = null;    // снимок контекста для возврата после ручной очереди
+    let manualResumeState = null;
     let releaseInfo = {};
     const BLOCKED_STORAGE_KEY = 'fartify_blocked_tracks';
 
@@ -155,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // РОУТЕР v2 — базовая защита от петель
+    // РОУТЕР v2 — защита от петель + новый формат ?share=track&title=
     // ═══════════════════════════════════════════════════════════
 
     let __routerBusy = false;
@@ -211,18 +210,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleRouting() {
-    if (__routerBusy) return;
-    __routerBusy = true;
-    try {
-        // ★ Сначала проверяем query-параметр для трека
-        const params = new URLSearchParams(window.location.search);
-        const shareType = params.get('share');
-        const trackTitle = params.get('title');
+        if (__routerBusy) return;
+        __routerBusy = true;
+        try {
+            // ★ НОВЫЙ ФОРМАТ: /?share=track&title=<Название>
+            // Открываем карточку трека — ту самую, что и на странице релиза.
+            const sp = new URLSearchParams(window.location.search);
+            const shareKind = sp.get('share');
+            const shareTitle = sp.get('title');
 
-        if (shareType === 'track' && trackTitle) {
-            openTrackShareView(trackTitle);
-            return;
-        }
+            if (shareKind === 'track' && shareTitle) {
+                openTrackShareView(shareTitle);
+                return;
+            }
+
+            const path = getRelativePath();
+            __routerLastPath = path;
+
+            const segments = path.replace(/^\/+/, '').split('/').filter(Boolean);
 
             // /Artist/<name>
             if (segments[0] === 'Artist' && segments[1]) {
@@ -234,7 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // /track/<slug> — открываем карточку трека (share-view)
+            // /track/<slug> — оставлено для обратной совместимости
+            // (старые ссылки). Работает, но если CSS сломается — это ожидаемо,
+            // потому что все относительные пути в index.html резолвятся от /track/.
             if (segments[0] === 'track' && segments[1]) {
                 const trackSlug = safeDecode(segments[1]);
                 if (trackSlug) {
@@ -1889,14 +1896,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    function buildTrackPrettyUrl(track) {
-        if (!track || !track.title) return window.location.href;
-        const slug = slugifyTrackTitle(track.title);
-        const origin = window.location.origin;
-        const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
-        return `${origin}${base}/track/${encodeURIComponent(slug)}`;
-    }
-
     // Открывает карточку трека — ту же, что и при ?share=track&file=...
     // Работает через публичный API initShareFeature (window.fartifyShare.showTrack)
     function openTrackShareView(slug) {
@@ -1918,8 +1917,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Оставляем для внутренних вызовов (например, из кода, который сам
-    // решает открыть трек по slug без карточки)
+    // Оставляем для внутренних вызовов
     function openTrackBySlug(slug) {
         const found = findTrackBySlug(slug);
 
@@ -3738,22 +3736,25 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
+        // ★ buildShareUrl: для трека — /?share=track&title=<slug>
+        // Такой формат открывается с корня и не ломает относительные пути CSS.
         function buildShareUrl(type, data) {
-    if (type === 'track') {
-        if (data && data.title) {
-            const slug = slugifyTrackTitle(data.title);
             const origin = window.location.origin;
             const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
-            // ★ Меняем формат ссылки
-            return `${origin}${base}/?share=track&title=${encodeURIComponent(slug)}`;
-        }
-                const fallback = new URL(window.location.origin + BASE_PATH);
-                fallback.searchParams.set('share', 'track');
-                if (data && data.file) fallback.searchParams.set('file', data.file);
-                return fallback.toString();
+            const rootUrl = `${origin}${base}/`;
+
+            if (type === 'track') {
+                if (data && data.title) {
+                    const slug = slugifyTrackTitle(data.title);
+                    return `${rootUrl}?share=track&title=${encodeURIComponent(slug)}`;
+                }
+                if (data && data.file) {
+                    return `${rootUrl}?share=track&file=${encodeURIComponent(data.file)}`;
+                }
+                return `${rootUrl}?share=track`;
             }
 
-            const url = new URL(window.location.origin + BASE_PATH);
+            const url = new URL(rootUrl);
             url.searchParams.set('share', type);
             if (type === 'playlist') {
                 url.searchParams.set('title', data.title);
@@ -4059,7 +4060,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let shareViewDataUrl = null;
         let shareViewFileName = '';
 
-        // ★ Универсальная функция: открывает share-view для конкретного трека
         async function showShareViewForTrack(track, album) {
             if (!track || !track.file) return;
 
@@ -4329,7 +4329,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        // ★ Публичный API — добавляем showTrack для роутера
         window.fartifyShare = {
             track: (track, album) => openShareForTrack(track, album),
             playlist: (config) => openShareForPlaylist(config),

@@ -211,13 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleRouting() {
-        if (__routerBusy) return;
-        __routerBusy = true;
-        try {
-            const path = getRelativePath();
-            __routerLastPath = path;
+    if (__routerBusy) return;
+    __routerBusy = true;
+    try {
+        // ★ Сначала проверяем query-параметр для трека
+        const params = new URLSearchParams(window.location.search);
+        const shareType = params.get('share');
+        const trackTitle = params.get('title');
 
-            const segments = path.replace(/^\/+/, '').split('/').filter(Boolean);
+        if (shareType === 'track' && trackTitle) {
+            openTrackShareView(trackTitle);
+            return;
+        }
 
             // /Artist/<name>
             if (segments[0] === 'Artist' && segments[1]) {
@@ -3734,13 +3739,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function buildShareUrl(type, data) {
-            if (type === 'track') {
-                if (data && data.title) {
-                    const slug = slugifyTrackTitle(data.title);
-                    const origin = window.location.origin;
-                    const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
-                    return `${origin}${base}/track/${encodeURIComponent(slug)}`;
-                }
+    if (type === 'track') {
+        if (data && data.title) {
+            const slug = slugifyTrackTitle(data.title);
+            const origin = window.location.origin;
+            const base = BASE_PATH === '/' ? '' : BASE_PATH.replace(/\/$/, '');
+            // ★ Меняем формат ссылки
+            return `${origin}${base}/?share=track&title=${encodeURIComponent(slug)}`;
+        }
                 const fallback = new URL(window.location.origin + BASE_PATH);
                 fallback.searchParams.set('share', 'track');
                 if (data && data.file) fallback.searchParams.set('file', data.file);

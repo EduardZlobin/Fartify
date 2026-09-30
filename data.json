@@ -864,5 +864,44 @@
                 "plays": "92 436"
             }
         ]
+    },
+    {
+        "title": "EbLanPhonk",
+        "artist": "ГоzZаказ (ОПГ MUSIC)",
+        "cover": "40.png",
+        "date": "2026-09-30",
+        "label": "© 2026 Pi33MANIA⠀⠀⠀℗ 2026 Pi33MANIA",
+        "tracks": [
+            {
+                "title": "Glud on",
+                "file": "114.mp3",
+                "duration": "1:03",
+                "plays": "72 364"
+            },
+            {
+                "title": "Per dungla dun",
+                "file": "115.mp3",
+                "duration": "1:07",
+                "plays": "66 336"
+            },
+            {
+                "title": "Produ lovbiotua leti",
+                "file": "116.mp3",
+                "duration": "1:00",
+                "plays": "63 463"
+            },
+            {
+                "title": "ZlO bin izra bo chi",
+                "file": "117.mp3",
+                "duration": "1:06",
+                "plays": "53 435"
+            },
+            {
+                "title": "Za broda nara boti (sad outro)",
+                "file": "118.mp3",
+                "duration": "2:31",
+                "plays": "62 449"
+            }
+        ]
     }
 ]

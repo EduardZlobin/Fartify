@@ -1,0 +1,356 @@
+/* ============================================================
+   css/reviews.css — страница «Рецензии»
+   Чёрная минималистичная тема, отличная от остального сайта
+   ============================================================ */
+
+.reviews-page {
+    padding: 28px clamp(20px, 4vw, 56px) 40px;
+    min-height: 60vh;
+    /* Монохромная палитра — отключаем фирменные фиолетовые акценты */
+    --rv-bg: #08080a;
+    --rv-surface: #0d0d10;
+    --rv-surface-2: #121215;
+    --rv-line: rgba(255, 255, 255, 0.06);
+    --rv-line-strong: rgba(255, 255, 255, 0.10);
+    --rv-text: #f2f2f4;
+    --rv-text-dim: rgba(255, 255, 255, 0.55);
+    --rv-text-faint: rgba(255, 255, 255, 0.30);
+    --rv-star: #ffd166;
+    --rv-star-dim: rgba(255, 209, 102, 0.22);
+    color: var(--rv-text);
+}
+
+/* ── Заголовок ── */
+.reviews-header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rv-line);
+}
+
+.reviews-header-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.reviews-title {
+    font-size: clamp(28px, 3.4vw, 44px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin: 0;
+    color: #fff;
+    position: relative;
+    padding-left: 20px;
+}
+
+.reviews-title::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #ffffff 0%, #808080 100%);
+    opacity: 0.8;
+}
+
+.reviews-stats {
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--rv-text-dim);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+}
+
+.reviews-stats b {
+    color: #fff;
+    font-weight: 700;
+}
+
+/* ── Табы ── */
+.reviews-tabs {
+    display: inline-flex;
+    padding: 4px;
+    background: var(--rv-surface);
+    border: 1px solid var(--rv-line);
+    border-radius: 12px;
+}
+
+.reviews-tab {
+    padding: 8px 20px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--rv-text-dim);
+    background: transparent;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: color 0.18s ease, background 0.18s ease;
+}
+
+.reviews-tab:hover {
+    color: #fff;
+}
+
+.reviews-tab.is-active {
+    color: #050505;
+    background: #f2f2f4;
+}
+
+/* ── Сетка карточек ── */
+.reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+/* ── Карточка ── */
+.rv-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--rv-surface);
+    border: 1px solid var(--rv-line);
+    border-radius: 14px;
+    overflow: hidden;
+    transition:
+        border-color 0.22s ease,
+        background 0.22s ease,
+        transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rv-card:hover {
+    background: var(--rv-surface-2);
+    border-color: var(--rv-line-strong);
+    transform: translateY(-3px);
+}
+
+.rv-card.is-rated {
+    border-color: rgba(255, 209, 102, 0.22);
+}
+
+.rv-card.is-rated:hover {
+    border-color: rgba(255, 209, 102, 0.36);
+}
+
+/* ── Обложка ── */
+.rv-cover-wrap {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #0a0a0c;
+}
+
+.rv-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(0.15) brightness(0.92);
+    transition: filter 0.35s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rv-card:hover .rv-cover {
+    filter: grayscale(0) brightness(1);
+    transform: scale(1.035);
+}
+
+.rv-type-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 8px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(10, 10, 12, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.rv-card.is-rated .rv-type-badge {
+    color: #050505;
+    background: var(--rv-star);
+    border-color: transparent;
+}
+
+/* ── Тело карточки ── */
+.rv-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 14px 14px 16px;
+    min-height: 0;
+    flex: 1;
+}
+
+.rv-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rv-artist {
+    font-size: 12px;
+    color: var(--rv-text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rv-meta {
+    margin-top: 2px;
+    font-size: 10.5px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--rv-text-faint);
+}
+
+/* ── Звёзды ── */
+.rv-stars {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rv-line);
+}
+
+.rv-star {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--rv-star-dim);
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rv-star:hover,
+.rv-star.is-hover {
+    color: var(--rv-star);
+    transform: scale(1.12);
+}
+
+.rv-star.is-filled {
+    color: var(--rv-star);
+}
+
+.rv-star svg {
+    width: 100%;
+    height: 100%;
+}
+
+.rv-score {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    font-variant-numeric: tabular-nums;
+    color: var(--rv-text-dim);
+}
+
+.rv-card.is-rated .rv-score {
+    color: var(--rv-star);
+}
+
+.rv-clear {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    margin-left: 4px;
+    background: none;
+    border: 0;
+    color: var(--rv-text-faint);
+    cursor: pointer;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+    opacity: 0;
+}
+
+.rv-card:hover .rv-clear,
+.rv-card.is-rated .rv-clear {
+    opacity: 1;
+}
+
+.rv-clear:hover {
+    color: #ff7b7b;
+    background: rgba(255, 123, 123, 0.10);
+}
+
+.rv-clear svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* ── Пустое состояние ── */
+.reviews-empty {
+    padding: 60px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--rv-text-faint);
+}
+
+/* ── Адаптив ── */
+@media (max-width: 700px) {
+    .reviews-page {
+        padding: 20px 14px 32px;
+    }
+
+    .reviews-header {
+        margin-bottom: 22px;
+        padding-bottom: 16px;
+    }
+
+    .reviews-header-top {
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .reviews-title {
+        padding-left: 14px;
+    }
+
+    .reviews-tab {
+        padding: 7px 14px;
+        font-size: 12px;
+    }
+
+    .reviews-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 10px;
+    }
+
+    .rv-body {
+        padding: 10px 10px 12px;
+    }
+
+    .rv-title { font-size: 12.5px; }
+    .rv-artist { font-size: 11px; }
+    .rv-star { width: 18px; height: 18px; }
+    .rv-score { font-size: 11px; }
+}

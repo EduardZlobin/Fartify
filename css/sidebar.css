@@ -1,0 +1,283 @@
+/* ============================================================
+   css/sidebar.css — левая панель навигации
+   ============================================================ */
+
+:root {
+    --sidebar-width: 76px;
+    --sidebar-width-expanded: 232px;
+    --sidebar-transition: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.sidebar-expanded {
+    --sidebar-width: var(--sidebar-width-expanded);
+}
+
+.app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 500;
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    padding: 18px 10px 88px;
+    background:
+        linear-gradient(180deg, rgba(10, 10, 14, 0.94) 0%, rgba(6, 6, 10, 0.98) 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(22px) saturate(1.3);
+    -webkit-backdrop-filter: blur(22px) saturate(1.3);
+    transition: width var(--sidebar-transition);
+    overflow: hidden;
+}
+
+/* Лёгкое свечение сверху */
+.app-sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.10), transparent 45%);
+    opacity: 0.9;
+}
+
+.app-sidebar > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ── Бренд ── */
+.app-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 6px 22px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.app-sidebar-brand-mark {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 20px;
+    color: #fff;
+    background: linear-gradient(135deg, #8b5cf6 0%, #c026d3 55%, #ec4899 100%);
+    box-shadow:
+        0 8px 22px rgba(139, 92, 246, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.app-sidebar-brand-name {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: #fff;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.22s ease, transform var(--sidebar-transition);
+}
+
+html.sidebar-expanded .app-sidebar-brand-name {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* ── Меню ── */
+.app-sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+}
+
+.app-sidebar-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.app-sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.62);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.22s var(--sidebar-transition);
+}
+
+.app-sidebar-link svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.app-sidebar-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+.app-sidebar-link.is-active {
+    color: #fff;
+    background:
+        linear-gradient(135deg, rgba(139, 92, 246, 0.20), rgba(236, 72, 153, 0.12));
+    border-color: rgba(139, 92, 246, 0.28);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 8px 22px rgba(139, 92, 246, 0.10);
+}
+
+.app-sidebar-link.is-active svg {
+    filter: drop-shadow(0 0 8px rgba(196, 181, 253, 0.55));
+}
+
+.app-sidebar-link-text {
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.22s ease, transform var(--sidebar-transition);
+}
+
+html.sidebar-expanded .app-sidebar-link-text {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* ── Нижняя кнопка сворачивания ── */
+.app-sidebar-footer {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 96px;
+    display: flex;
+    justify-content: center;
+}
+
+.app-sidebar-toggle {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.65);
+    cursor: pointer;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.22s var(--sidebar-transition);
+}
+
+.app-sidebar-toggle:hover {
+    color: #fff;
+    background: rgba(139, 92, 246, 0.15);
+    border-color: rgba(139, 92, 246, 0.28);
+}
+
+.app-sidebar-toggle svg {
+    transition: transform var(--sidebar-transition);
+}
+
+html.sidebar-expanded .app-sidebar-toggle svg {
+    transform: rotate(180deg);
+}
+
+/* ── Сдвиг основного интерфейса ── */
+body {
+    padding-left: var(--sidebar-width);
+    transition: padding-left var(--sidebar-transition);
+}
+
+header {
+    margin-left: var(--sidebar-width);
+    transition: margin-left var(--sidebar-transition);
+}
+
+main {
+    margin-left: var(--sidebar-width);
+    transition: margin-left var(--sidebar-transition);
+}
+
+/* Мобильная версия */
+@media (max-width: 900px) {
+    :root {
+        --sidebar-width: 64px;
+        --sidebar-width-expanded: 220px;
+    }
+
+    .app-sidebar {
+        padding: 14px 8px 80px;
+    }
+
+    .app-sidebar-brand {
+        padding: 2px 4px 16px;
+    }
+
+    .app-sidebar-brand-mark {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+        border-radius: 10px;
+    }
+
+    .app-sidebar-link {
+        padding: 10px;
+        gap: 12px;
+        border-radius: 10px;
+    }
+
+    .app-sidebar-link svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .app-sidebar-footer {
+        left: 8px;
+        right: 8px;
+        bottom: 82px;
+    }
+
+    .app-sidebar-toggle {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+@media (max-width: 700px) {
+    :root {
+        --sidebar-width: 58px;
+        --sidebar-width-expanded: 200px;
+    }
+
+    .player {
+        left: calc(var(--sidebar-width) + 6px) !important;
+    }
+
+    .app-sidebar-toggle {
+        width: 32px;
+        height: 32px;
+    }
+}

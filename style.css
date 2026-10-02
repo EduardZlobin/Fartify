@@ -5411,16 +5411,8 @@ body.lyrics-open #main-content {
 }
 
 .lyric-line.active::after {
-    content: "";
-    position: absolute;
-    left: 11px;
-    right: auto;
-    bottom: 4px;
-    width: 32px;
-    height: 2px;
-    border-radius: 99px;
-    background: linear-gradient(90deg, #8b5cf6, #ec4899);
-    box-shadow: 0 0 13px rgba(236,72,153,.35);
+    content: none !important;
+    display: none !important;
 }
 
 /* Fullscreen lyrics inside the sidebar */
@@ -5477,6 +5469,7 @@ body.lyrics-open #main-content {
     width: min(100%, 1500px);
     margin: 0 auto;
     padding: 22px clamp(20px, 4vw, 56px) 30px !important;
+    overflow: visible !important;       /* ★ не режет sticky */
 }
 
 /* ---------- Release/playlist modal must sit above the sticky header ---------- */
@@ -5563,8 +5556,10 @@ body.lyrics-open #main-content {
     top: -1px;
     z-index: 8 !important;
     padding: 8px 0 9px;
-    background: linear-gradient(180deg, rgba(8,8,12,.94), rgba(8,8,12,.72), transparent);
-    backdrop-filter: blur(8px);
+    /* ★ Прозрачная шапка: без серой плашки */
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 .queue-full {
     max-height: none !important;
@@ -7844,4 +7839,1494 @@ body {
 .your-gradient-section {
     margin-bottom: 0;
     padding-bottom: 0;
+}
+
+/* ===========================================================
+   v5 — обновления: анимация нот, фон «Текст» в цвет обложки,
+   скрытие правой панели «Сейчас играет»
+   =========================================================== */
+
+/* ── 1. Скрытие ЛЕВОЙ панели навигации ── */
+#app-sidebar {
+    display: none !important;
+}
+
+/* Убираем сдвиги, которые создавала левая панель */
+body {
+    padding-left: 0 !important;
+}
+
+header {
+    margin-left: 0 !important;
+}
+
+main {
+    margin-left: 0 !important;
+}
+
+.player {
+    left: 14px !important;
+}
+
+@media (max-width: 900px) {
+    .player { left: 8px !important; }
+}
+@media (max-width: 700px) {
+    .player { left: 6px !important; }
+}
+
+/* ── 2. Фон блока «Текст» — в цвет обложки ── */
+.lyrics-text-section {
+    position: relative;
+    background: #12121a; /* fallback */
+    overflow: hidden;
+}
+
+.lyrics-text-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 12% 0%,
+            rgba(var(--lyrics-c1, 90, 60, 160), 0.55) 0%,
+            transparent 55%),
+        radial-gradient(circle at 100% 100%,
+            rgba(var(--lyrics-c2, 160, 60, 120), 0.42) 0%,
+            transparent 62%),
+        linear-gradient(180deg,
+            rgba(10, 8, 18, 0.72) 0%,
+            rgba(6, 6, 12, 0.88) 100%);
+    transition: background 0.8s ease;
+}
+
+.lyrics-text-section > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Убираем старую фиолетовую подложку */
+.lyrics-text-section {
+    background:
+        radial-gradient(circle at 12% 0%,
+            rgba(var(--lyrics-c1, 90, 60, 160), 0.55) 0%,
+            transparent 55%),
+        radial-gradient(circle at 100% 100%,
+            rgba(var(--lyrics-c2, 160, 60, 120), 0.42) 0%,
+            transparent 62%),
+        linear-gradient(180deg,
+            rgba(10, 8, 18, 0.72) 0%,
+            rgba(6, 6, 12, 0.88) 100%);
+}
+
+/* ── 3. Анимация для строк-нот ── */
+
+/* Контейнер строки-ноты */
+.lyric-line.is-musical {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 14px 12px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    letter-spacing: 0;
+    transition:
+        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+        background 0.5s ease,
+        border-color 0.5s ease,
+        box-shadow 0.5s ease;
+}
+
+/* Отключаем псевдоэлементы, которые были у обычных строк */
+.lyric-line.is-musical.active::before,
+.lyric-line.is-musical.active::after {
+    content: none;
+}
+
+/* Каждая нота */
+.lyric-line.is-musical .music-note {
+    display: inline-block;
+    font-size: 1em;
+    line-height: 1;
+    margin: 0 6px;
+    color: rgba(196, 181, 253, 0.55);
+    opacity: 0.35;
+    transform: translateY(0);
+    transition:
+        color 0.5s ease,
+        opacity 0.5s ease,
+        transform 0.5s ease,
+        text-shadow 0.5s ease;
+    will-change: transform, opacity;
+}
+
+/* Hover-состояние (на всякий случай) */
+.lyric-line.is-musical.near .music-note {
+    color: rgba(196, 181, 253, 0.75);
+    opacity: 0.55;
+}
+
+/* Активная строка — строки-ноты расцветают */
+.lyric-line.is-musical.active {
+    background:
+        radial-gradient(ellipse 70% 100% at 50% 50%,
+            rgba(var(--lyrics-c1, 139, 92, 246), 0.22) 0%,
+            rgba(var(--lyrics-c2, 236, 72, 153), 0.10) 60%,
+            transparent 100%);
+    border-color: rgba(var(--lyrics-c1, 139, 92, 246), 0.20);
+    box-shadow:
+        0 0 30px rgba(var(--lyrics-c1, 139, 92, 246), 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transform: scale(1.06);
+    padding: 20px 12px;
+}
+
+.lyric-line.is-musical.active .music-note {
+    color: #ffffff;
+    opacity: 1;
+    font-size: 1.7em;
+    margin: 0 10px;
+    text-shadow:
+        0 0 14px rgba(196, 181, 253, 0.75),
+        0 0 30px rgba(var(--lyrics-c1, 139, 92, 246), 0.55);
+    animation: musicNoteFloat 2.2s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.15s);
+}
+
+/* Разные ноты чуть по-разному кружатся */
+@keyframes musicNoteFloat {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    25% {
+        transform: translateY(-9px) rotate(-6deg) scale(1.08);
+    }
+    50% {
+        transform: translateY(-3px) rotate(2deg) scale(0.98);
+    }
+    75% {
+        transform: translateY(-7px) rotate(5deg) scale(1.05);
+    }
+}
+
+/* Подсветка цвета нот, если заданы цвета обложки */
+.lyric-line.is-musical.active .music-note:nth-child(odd) {
+    filter: drop-shadow(0 0 10px rgba(var(--lyrics-c1, 139, 92, 246), 0.6));
+}
+.lyric-line.is-musical.active .music-note:nth-child(even) {
+    filter: drop-shadow(0 0 10px rgba(var(--lyrics-c2, 236, 72, 153), 0.55));
+}
+
+/* В полноэкранном режиме — крупнее */
+.lyrics-full-content .lyric-line.is-musical.active .music-note {
+    font-size: 2.1em;
+    margin: 0 14px;
+}
+
+/* ===========================================================
+   v6.3 — финальные фиксы: очередь, о релизе, полноэкранный, караоке
+   =========================================================== */
+
+:root {
+    --lyrics-c1: 90, 60, 160;
+    --lyrics-c2: 160, 60, 120;
+}
+
+/* ── Базовые блоки с цветным фоном ── */
+.lyrics-text-section,
+.queue-section,
+.release-info-block {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 17px;
+    background: rgba(12, 12, 16, 0.55);
+}
+
+.lyrics-text-section > *,
+.queue-section > *,
+.release-info-block > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* ★ Фон рисуется через inset: 0 (не выходит за блок),
+   а анимация — через смещение background-position, а не transform */
+.lyrics-text-section::before,
+.queue-section::before,
+.release-info-block::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    transition: background 0.9s ease;
+    will-change: background-position;
+    background-size: 200% 200%, 200% 200%, 100% 100%;
+}
+
+.lyrics-text-section::before {
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(var(--lyrics-c1), 0.38) 0%, transparent 55%),
+        radial-gradient(circle at 80% 70%, rgba(var(--lyrics-c2), 0.26) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(10, 8, 18, 0.55) 0%, rgba(4, 4, 8, 0.85) 100%);
+    animation: bgShiftA 22s ease-in-out infinite alternate;
+}
+
+.queue-section::before {
+    background-image:
+        radial-gradient(circle at 30% 20%, rgba(var(--lyrics-c1), 0.30) 0%, transparent 60%),
+        radial-gradient(circle at 75% 85%, rgba(var(--lyrics-c2), 0.20) 0%, transparent 62%),
+        linear-gradient(180deg, rgba(10, 8, 18, 0.55) 0%, rgba(4, 4, 8, 0.85) 100%);
+    animation: bgShiftB 26s ease-in-out infinite alternate;
+}
+
+.release-info-block::before {
+    background-image:
+        radial-gradient(circle at 15% 25%, rgba(var(--lyrics-c1), 0.28) 0%, transparent 58%),
+        radial-gradient(circle at 85% 75%, rgba(var(--lyrics-c2), 0.20) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(10, 8, 18, 0.55) 0%, rgba(4, 4, 8, 0.85) 100%);
+    animation: bgShiftC 30s ease-in-out infinite alternate;
+}
+
+@keyframes bgShiftA {
+    0%   { background-position: 0% 0%, 100% 100%, 0% 0%; }
+    50%  { background-position: 60% 40%, 40% 60%, 0% 0%; }
+    100% { background-position: 30% 70%, 70% 30%, 0% 0%; }
+}
+@keyframes bgShiftB {
+    0%   { background-position: 100% 0%, 0% 100%, 0% 0%; }
+    50%  { background-position: 30% 60%, 70% 40%, 0% 0%; }
+    100% { background-position: 60% 100%, 40% 0%, 0% 0%; }
+}
+@keyframes bgShiftC {
+    0%   { background-position: 0% 100%, 100% 0%, 0% 0%; }
+    50%  { background-position: 60% 30%, 40% 70%, 0% 0%; }
+    100% { background-position: 30% 0%, 70% 100%, 0% 0%; }
+}
+
+/* Зернистость */
+.queue-section::after,
+.lyrics-text-section::after,
+.release-info-block::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    mix-blend-mode: overlay;
+    border-radius: inherit;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-size: 120px 120px;
+}
+
+/* ── Блок «Что играет» сверху — в цвет обложки ── */
+.lyrics-context {
+    background:
+        linear-gradient(135deg,
+            rgba(var(--lyrics-c1), 0.28) 0%,
+            rgba(var(--lyrics-c2), 0.14) 100%),
+        rgba(255, 255, 255, 0.04) !important;
+    border-color: rgba(var(--lyrics-c1), 0.32) !important;
+    color: #fff !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 8px 24px rgba(0, 0, 0, 0.20),
+        0 0 24px rgba(var(--lyrics-c1), 0.14) !important;
+    transition: background 0.9s ease, border-color 0.9s ease, box-shadow 0.9s ease;
+}
+
+/* ── Строка с названием и кнопками ── */
+.lyrics-now-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.lyrics-now-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lyrics-now-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.lyrics-action-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.72);
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.22s ease;
+}
+
+.lyrics-action-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(var(--lyrics-c1), 0.32);
+    transform: translateY(-1px);
+}
+
+.lyrics-action-btn.active {
+    color: #f472b6;
+    background: rgba(236, 72, 153, 0.12);
+    border-color: rgba(236, 72, 153, 0.32);
+}
+
+/* ── Полноэкранный текст ── */
+.lyrics-panel.lyrics-fullscreen-open .lyrics-content {
+    padding: 0 !important;
+}
+
+.lyrics-full-overlay {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 50 !important;
+    border-radius: 0 !important;
+    overflow: hidden;
+}
+
+/* ★ Убиваем старый фиолетовый ::before */
+.lyrics-full-overlay::before {
+    content: none !important;
+    display: none !important;
+}
+
+.lyrics-full-overlay .lyrics-full-bg {
+    position: absolute;
+    inset: -15%;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 25% 25%, rgba(var(--lyrics-c1), 0.42) 0%, transparent 55%),
+        radial-gradient(circle at 75% 75%, rgba(var(--lyrics-c2), 0.32) 0%, transparent 58%),
+        radial-gradient(circle at 50% 50%, rgba(var(--lyrics-c1), 0.14) 0%, transparent 70%),
+        linear-gradient(180deg, rgba(4, 3, 8, 0.65) 0%, rgba(2, 2, 5, 0.94) 100%);
+    filter: blur(50px) saturate(1.25);
+    animation: lyricsFullDrift 32s ease-in-out infinite alternate;
+    transition: background 1.2s ease;
+    will-change: transform;
+}
+
+.lyrics-full-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(var(--lyrics-c1), 0.14) 0%, transparent 45%),
+        radial-gradient(circle at 85% 15%, rgba(var(--lyrics-c2), 0.11) 0%, transparent 48%);
+    animation: lyricsFullPulse 18s ease-in-out infinite;
+    mix-blend-mode: screen;
+}
+
+.lyrics-full-overlay .lyrics-full-content {
+    position: relative;
+    z-index: 2;
+}
+
+/* ★ Кнопка «Свернуть» — только z-index, никаких правок position */
+.lyrics-full-overlay .lyrics-full-close {
+    z-index: 60 !important;
+}
+
+@keyframes lyricsFullDrift {
+    0%   { transform: translate3d(-4%, -3%, 0) scale(1.10) rotate(0deg); }
+    50%  { transform: translate3d(3%, 4%, 0)   scale(1.15) rotate(2deg); }
+    100% { transform: translate3d(4%, -2%, 0)  scale(1.12) rotate(-1.5deg); }
+}
+
+@keyframes lyricsFullPulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.06); }
+}
+
+/* ── Активная строка караоке — в цвет обложки ── */
+.lyric-line.active {
+    background: linear-gradient(90deg,
+        rgba(var(--lyrics-c1), 0.22) 0%,
+        rgba(var(--lyrics-c2), 0.10) 60%,
+        transparent 100%) !important;
+    border-color: rgba(var(--lyrics-c1), 0.24) !important;
+    box-shadow:
+        0 10px 25px rgba(0, 0, 0, 0.14),
+        0 0 28px rgba(var(--lyrics-c1), 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+    text-shadow:
+        0 0 14px rgba(255, 255, 255, 0.28),
+        0 0 30px rgba(var(--lyrics-c1), 0.42) !important;
+}
+
+.lyric-line.active > span:first-child {
+    background: linear-gradient(90deg, #fff 0%, #ffffff 65%, #ede9f8 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+.lyric-line.active::before {
+    background: linear-gradient(180deg,
+        rgb(var(--lyrics-c1)) 0%,
+        rgb(var(--lyrics-c2)) 100%) !important;
+    box-shadow: 0 0 14px rgba(var(--lyrics-c1), 0.65) !important;
+}
+
+.lyric-line.active::after {
+    background: linear-gradient(90deg,
+        rgb(var(--lyrics-c1)) 0%,
+        rgb(var(--lyrics-c2)) 100%) !important;
+    box-shadow: 0 0 13px rgba(var(--lyrics-c2), 0.55) !important;
+}
+
+/* ── Имаж-модалка: не даём большим картинкам вылезать ── */
+#image-modal .image-modal-content {
+    max-width: min(92vw, 1200px);
+    max-height: 92vh;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+#image-modal .image-modal-content img {
+    max-width: 100%;
+    max-height: calc(92vh - 32px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    border-radius: 10px;
+}
+
+/* ── Плеер: убираем остатки старого отступа от сайдбара ── */
+.player {
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 12px 12px !important;
+}
+
+@media (max-width: 900px) {
+    .player { margin: 0 8px 8px !important; }
+}
+@media (max-width: 700px) {
+    .player { margin: 0 7px 7px !important; }
+}
+
+/* ── Автор трека под названием в треклистах ── */
+.track-title-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+    line-height: 1.2;
+}
+
+.track-title-col .track-title-main {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f0f0f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.track-title-col .track-artist-sub {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.42);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.1px;
+}
+
+.modal-tracks-table .track-row.playing .track-title-col .track-title-main,
+.playlist-tracks-table .track-row.playing .track-title-col .track-title-main {
+    color: #fff;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(var(--lyrics-c1), 0.35);
+}
+
+/* ── Исполнитель в шапке релиза — кликабельный ── */
+.modal-artist-link {
+    color: inherit;
+    cursor: pointer;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+}
+
+.modal-artist-link:hover {
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.28);
+    text-shadow: 0 0 12px rgba(var(--lyrics-c1), 0.45);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+    .lyrics-text-section::before,
+    .queue-section::before,
+    .release-info-block::before,
+    .lyrics-full-overlay .lyrics-full-bg,
+    .lyrics-full-overlay::after {
+        animation: none !important;
+    }
+}
+
+/* ===========================================================
+   v6.4 — финальные фиксы: отступы, тени, о релизе, карточки
+   =========================================================== */
+
+/* ★ 1. Отступ между названием и исполнителем в правой панели */
+.lyrics-now-title {
+    margin: 4px 0 8px 0 !important;   /* было +4/-8 — теперь ровно */
+    font-size: 19px;
+    font-weight: 760;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+}
+
+.lyrics-now-artist {
+    margin-top: 0 !important;         /* убираем старый -8px */
+    color: #8c8c9b;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.lyrics-now-row {
+    margin-top: 4px;
+}
+
+/* ★ 2. Убираем «инородную» тень у карточки в очереди */
+.queue-next .queue-item,
+.queue-full .queue-item {
+    box-shadow: none !important;
+}
+
+/* ★ 3. Починим блок «О релизе» — padding, gap и flex обратно */
+.release-info-block {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 14px 16px 16px !important;
+    min-height: 0;
+}
+
+.release-info-block.hidden {
+    display: none !important;
+}
+
+.release-info-body {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    min-height: 0;
+}
+
+.release-info-text {
+    min-height: 0;
+}
+
+/* ★ 4. Плеер — перебиваем правило из sidebar.css */
+body > #player,
+body > .player {
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 12px 12px !important;
+}
+
+@media (max-width: 900px) {
+    body > #player,
+    body > .player { margin: 0 8px 8px !important; }
+}
+@media (max-width: 700px) {
+    body > #player,
+    body > .player { margin: 0 7px 7px !important; }
+}
+
+/* ===========================================================
+   v6.5 — фиты в треклистах, популярные треки с кнопкой,
+   ещё с этим исполнителем
+   =========================================================== */
+
+/* ── Кликабельные исполнители в строке ── */
+.artist-inline-link {
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    border-bottom: 1px dashed transparent;
+    transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.artist-inline-link:hover {
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.28);
+}
+
+.track-artist-sub .artist-inline-link:hover,
+.track-artist .artist-inline-link:hover,
+.queue-meta .artist-inline-link:hover {
+    color: #c4b5fd;
+}
+
+/* ── Новый блок «Популярные треки» ── */
+.popular-tracks-section {
+    margin-top: 34px;
+}
+
+.popular-tracks-inner {
+    position: relative;
+    padding: 22px 24px 18px;
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.06), transparent 45%),
+        linear-gradient(180deg, rgba(20, 18, 28, 0.65) 0%, rgba(11, 11, 16, 0.85) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    max-width: 1000px;
+    margin: 0;
+}
+
+.popular-tracks-inner h3 {
+    margin: 0 0 14px;
+    font-size: 20px;
+    font-weight: 760;
+    letter-spacing: -0.02em;
+    padding-left: 0;
+}
+
+.popular-tracks-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.popular-tracks-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 20px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 999px;
+    cursor: pointer;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.25s ease;
+}
+
+.popular-tracks-btn:hover {
+    color: #fff;
+    background: rgba(139, 92, 246, 0.16);
+    border-color: rgba(139, 92, 246, 0.30);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.14);
+}
+
+.popular-tracks-btn:active {
+    transform: translateY(0);
+}
+
+/* ── Блок «Ещё с этим исполнителем» ── */
+.artist-feats-section {
+    margin-top: 38px;
+}
+
+.artist-feats-section h3 {
+    margin: 0 0 16px;
+    font-size: 22px;
+    font-weight: 760;
+    letter-spacing: -0.02em;
+    padding-left: 4px;
+}
+
+/* ── Отступ снизу на странице артиста ── */
+.artist-page-bottom-spacer {
+    height: 180px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+    .artist-page-bottom-spacer {
+        height: 220px;
+    }
+}
+
+@media (max-width: 700px) {
+    .artist-page-bottom-spacer {
+        height: 260px;   /* плеер на мобилке занимает больше места */
+    }
+}
+@media (max-width: 700px) {
+    .popular-tracks-inner {
+        padding: 16px 14px 14px;
+        border-radius: 16px;
+    }
+
+    .popular-tracks-inner h3 {
+        font-size: 17px;
+        margin-bottom: 10px;
+    }
+
+    .artist-page-bottom-spacer {
+        height: 60px;
+    }
+}
+
+/* ★ Ещё с этим исполнителем — горизонтальный layout, как Музыка */
+#artist-feats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 0;
+}
+
+/* ===========================================================
+   Блок «О релизе» — блочный layout + цветной фон от обложки
+   =========================================================== */
+
+.release-info-block {
+    /* layout */
+    display: block !important;
+    position: relative !important;
+    isolation: isolate !important;
+    box-sizing: border-box !important;
+
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    /* не даём сжиматься как flex-item */
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    flex-basis: auto !important;
+
+    padding: 14px 16px 16px !important;
+    margin: 0 !important;
+
+    background: rgba(14, 14, 20, 0.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: 17px !important;
+    overflow: hidden !important;
+    transition: background 0.9s ease !important;
+}
+
+.release-info-block.hidden {
+    display: none !important;
+}
+
+/* ★ Цветной фон от обложки — inset: 0, без transform.
+   Анимация через background-position — не влияет на layout. */
+.release-info-block::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    border-radius: inherit !important;
+    pointer-events: none !important;
+
+    background-image:
+        radial-gradient(circle at 15% 25%,
+            rgba(var(--lyrics-c1, 90, 60, 160), 0.32) 0%,
+            transparent 58%),
+        radial-gradient(circle at 85% 75%,
+            rgba(var(--lyrics-c2, 160, 60, 120), 0.22) 0%,
+            transparent 60%),
+        linear-gradient(180deg,
+            rgba(10, 8, 18, 0.50) 0%,
+            rgba(4, 4, 8, 0.85) 100%);
+
+    background-size: 200% 200%, 200% 200%, 100% 100%;
+    background-position: 0% 100%, 100% 0%, 0% 0%;
+    animation: releaseBgShift 30s ease-in-out infinite alternate;
+    transition: background-image 0.9s ease;
+    will-change: background-position;
+}
+
+@keyframes releaseBgShift {
+    0%   { background-position: 0% 100%, 100% 0%, 0% 0%; }
+    50%  { background-position: 60% 30%, 40% 70%, 0% 0%; }
+    100% { background-position: 30% 0%, 70% 100%, 0% 0%; }
+}
+
+/* Всё содержимое — над фоном */
+.release-info-block > * {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* ── Шапка ── */
+.release-info-block .release-info-head {
+    display: block !important;
+    position: relative !important;
+    padding: 0 0 10px 0 !important;
+    margin: 0 0 12px 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.055) !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+.release-info-block .release-info-title {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.65px !important;
+    text-transform: uppercase !important;
+    color: rgba(255, 255, 255, 0.74) !important;
+}
+
+/* ── Тело ── */
+.release-info-block .release-info-body {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+}
+
+/* ── Картинка ── */
+.release-info-block .release-info-image {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 220px !important;
+    object-fit: cover !important;
+    border-radius: 12px !important;
+    margin: 0 0 11px 0 !important;
+    box-shadow:
+        0 12px 28px rgba(0, 0, 0, 0.42),
+        0 0 0 1px rgba(255, 255, 255, 0.055) !important;
+}
+
+.release-info-block .release-info-image[src=""] {
+    display: none !important;
+}
+
+/* ── Текст ── */
+.release-info-block .release-info-text {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    font-size: 13px !important;
+    line-height: 1.62 !important;
+    color: rgba(255, 255, 255, 0.82) !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    margin: 0 !important;
+}
+
+.release-info-block .release-info-text:empty {
+    display: none !important;
+}
+
+/* Зернистость — только на ::after, чтобы не мешать */
+.release-info-block::after {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    opacity: 0.08 !important;
+    mix-blend-mode: overlay !important;
+    border-radius: inherit !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>") !important;
+    background-size: 120px 120px !important;
+}
+
+/* ===========================================================
+   v6.6 — красивый фон очереди (без серо-чёрной плашки)
+   =========================================================== */
+
+/* 1. Убираем серо-чёрную подложку у всего блока очереди,
+      чтобы сквозь него просвечивал цветной градиент обложки */
+.queue-section {
+    background: transparent !important;
+}
+
+/* 2. Делаем цветные градиенты ярче, а тёмный — мягче */
+.queue-section::before {
+    background-image:
+        radial-gradient(circle at 25% 15%,
+            rgba(var(--lyrics-c1), 0.42) 0%,
+            transparent 62%),
+        radial-gradient(circle at 80% 85%,
+            rgba(var(--lyrics-c2), 0.32) 0%,
+            transparent 64%),
+        linear-gradient(180deg,
+            rgba(10, 8, 18, 0.38) 0%,
+            rgba(4, 4, 8, 0.62) 100%) !important;
+    animation: bgShiftB 26s ease-in-out infinite alternate !important;
+}
+
+/* 3. Убираем серую плашку под каждым обычным треком в очереди */
+.queue-full .queue-item {
+    background: transparent !important;
+}
+
+/* 4. Оставляем мягкую подсветку у «следующего» трека,
+      но теперь в цвет обложки, а не серую */
+.queue-next .queue-item {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--lyrics-c1), 0.16) 0%,
+            rgba(var(--lyrics-c2), 0.05) 100%
+        ) !important;
+    border-color: rgba(var(--lyrics-c1), 0.22) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 0 24px rgba(var(--lyrics-c1), 0.10) !important;
+}
+
+/* 5. Hover — тоже в тон обложки, без серого */
+.queue-item:hover {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(var(--lyrics-c1), 0.14) 0%,
+            rgba(255, 255, 255, 0.02) 100%
+        ) !important;
+    border-color: rgba(var(--lyrics-c1), 0.20) !important;
+    box-shadow:
+        inset 3px 0 0 rgba(var(--lyrics-c1), 0.55),
+        0 8px 22px rgba(0, 0, 0, 0.20) !important;
+}
+
+/* 6. Сама рамка блока — прозрачная, но с едва заметной обводкой */
+.queue-section {
+    border: 1px solid rgba(var(--lyrics-c1), 0.14) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 14px 28px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* ===========================================================
+   Клик по строке караоке — курсор и подсветка
+   =========================================================== */
+
+.lyric-line {
+    cursor: pointer;
+    transition:
+        color .38s ease,
+        opacity .38s ease,
+        transform .38s cubic-bezier(.2,.8,.2,1),
+        background .22s ease,
+        border-color .22s ease,
+        filter .38s ease,
+        font-size .38s cubic-bezier(.2,.8,.2,1);
+}
+
+/* Неактивные строки — мягкая подсветка при наведении */
+.lyric-line:not(.active):hover {
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.72);
+    opacity: 0.85;
+    filter: blur(0);
+}
+
+/* Активная строка при наведении — чуть заметнее */
+.lyric-line.active:hover {
+    filter: brightness(1.06);
+}
+
+/* Строки-ноты тоже кликабельны */
+.lyric-line.is-musical {
+    cursor: pointer;
+}
+
+.lyric-line.is-musical:not(.active):hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* ★ Короткая вспышка после клика — «перескочили сюда» */
+.lyric-line.just-seeked {
+    animation: lyricSeekFlash 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes lyricSeekFlash {
+    0% {
+        background: rgba(var(--lyrics-c1, 139, 92, 246), 0.32);
+        transform: scale(1.03);
+    }
+    100% {
+        background: transparent;
+        transform: scale(1);
+    }
+}
+
+/* Отключаем «дёрганье» курсора на тач-устройствах */
+@media (hover: none) {
+    .lyric-line:not(.active):hover {
+        background: transparent;
+        border-color: transparent;
+        color: inherit;
+        opacity: inherit;
+    }
+}
+
+/* ===========================================================
+   Свёрнутый текст караоке — листаемый
+   =========================================================== */
+
+.lyrics-text-preview {
+    position: relative !important;
+    max-height: 260px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 4px 6px 4px 0 !important;
+
+    /* Убираем маску — она мешает при ручном скролле */
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+
+    /* Мягкий инерционный скролл */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+
+    /* Тонкий скроллбар в тон обложки */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--lyrics-c1, 139, 92, 246), 0.55) transparent;
+}
+
+.lyrics-text-preview::-webkit-scrollbar {
+    width: 5px;
+}
+
+.lyrics-text-preview::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.lyrics-text-preview::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg,
+        rgba(var(--lyrics-c1, 139, 92, 246), 0.62),
+        rgba(var(--lyrics-c2, 236, 72, 153), 0.52));
+    border-radius: 999px;
+    transition: background 0.6s ease;
+}
+
+.lyrics-text-preview::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg,
+        rgba(var(--lyrics-c1, 139, 92, 246), 0.85),
+        rgba(var(--lyrics-c2, 236, 72, 153), 0.75));
+}
+
+/* Строки не прилипают к самому верху при автопрокрутке */
+.lyrics-text-preview .lyric-line {
+    scroll-margin-top: 12px;
+    scroll-margin-bottom: 12px;
+}
+
+/* На мобилке превью чуть выше — там есть место */
+@media (max-width: 700px) {
+    .lyrics-text-preview {
+        max-height: 40vh !important;
+    }
+}
+
+@media (max-height: 700px) {
+    .lyrics-text-preview {
+        max-height: 180px !important;
+    }
+}
+
+/* ===========================================================
+   Страница артиста — 2-колоночный layout
+   Popular Tracks | Top Track Card
+   =========================================================== */
+
+.artist-top-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 400px !important;
+    gap: 12px !important;
+    align-items: start !important;
+    margin-top: 24px !important;
+    width: 100%;
+}
+
+@media (max-width: 1300px) {
+    .artist-top-row {
+        grid-template-columns: minmax(0, 1fr) 360px !important;
+    }
+}
+
+@media (max-width: 1100px) {
+    .artist-top-row {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+        align-items: start !important;
+    }
+}
+
+/* Обе колонки — по своей высоте */
+.artist-top-row > .popular-tracks-section,
+.artist-top-row > .top-track-card-section {
+    margin-top: 0 !important;
+    min-width: 0;
+    height: auto !important;
+    align-self: start !important;
+}
+
+/* ─────────── Блок «Популярные треки» ─────────── */
+
+.popular-tracks-section {
+    margin-top: 0 !important;
+}
+
+.popular-tracks-inner {
+    display: block !important;
+    max-width: none !important;
+    padding: 22px 24px 18px !important;
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.06), transparent 45%),
+        linear-gradient(180deg, rgba(20, 18, 28, 0.65) 0%, rgba(11, 11, 16, 0.85) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.popular-tracks-inner h3 {
+    margin: 0 0 14px !important;
+    font-size: 20px;
+    font-weight: 760;
+    letter-spacing: -0.02em;
+}
+
+.popular-tracks-section .tracks-header {
+    margin-bottom: 4px;
+}
+
+.popular-tracks-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px !important;
+    padding-top: 14px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ─────────── Блок «Самый популярный трек» ─────────── */
+
+.top-track-card-section {
+    /* sticky — плавает при скролле, если короче левого блока */
+    position: sticky !important;
+    top: 90px !important;
+    align-self: start !important;
+    height: fit-content !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 18px !important;
+    border-radius: 20px;
+
+    background:
+        radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.07), transparent 45%),
+        linear-gradient(180deg, rgba(20, 18, 28, 0.65) 0%, rgba(11, 11, 16, 0.85) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+/* Заголовок — без градиентной полоски */
+.top-track-card-title {
+    margin: 0 !important;
+    padding: 0 0 4px !important;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.62);
+    text-align: center;
+    position: relative;
+}
+
+.top-track-card-title::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* Обёртка карточки 4:5 */
+.top-track-card-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border-radius: 16px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #12121a, #0a0a10);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.top-track-card-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.top-track-card-img:hover {
+    transform: scale(1.02);
+}
+
+.top-track-card-img.hidden {
+    display: none !important;
+}
+
+/* Лоадер */
+.top-track-card-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    z-index: 1;
+}
+
+.top-track-card-loader.hidden {
+    display: none !important;
+}
+
+.top-track-card-spinner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid rgba(139, 92, 246, 0.15);
+    border-top-color: #8b5cf6;
+    border-right-color: #ec4899;
+    animation: topTrackSpin 0.9s linear infinite;
+}
+
+@keyframes topTrackSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Кнопки под карточкой */
+.top-track-card-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.top-track-play-btn {
+    flex: 1;
+    height: 48px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+
+    color: var(--top-fg, #0b0910);
+    background: linear-gradient(
+        135deg,
+        rgb(var(--top-c1, 255, 255, 255)) 0%,
+        rgb(var(--top-c2, 232, 221, 255)) 100%
+    );
+
+    box-shadow:
+        0 12px 26px rgba(0, 0, 0, 0.38),
+        0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+        0 0 26px rgba(var(--top-c1, 139, 92, 246), 0.28);
+
+    transition:
+        transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.25s ease,
+        filter 0.25s ease;
+}
+
+.top-track-play-btn svg {
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+}
+
+.top-track-play-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08) saturate(1.06);
+    box-shadow:
+        0 16px 32px rgba(0, 0, 0, 0.44),
+        0 0 0 1px rgba(255, 255, 255, 0.24) inset,
+        0 0 36px rgba(var(--top-c1, 139, 92, 246), 0.42);
+}
+
+.top-track-play-btn:active {
+    transform: scale(0.97);
+}
+
+.top-track-play-btn.is-playing {
+    filter: brightness(0.92) saturate(1.15);
+    box-shadow:
+        0 12px 26px rgba(0, 0, 0, 0.42),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+        0 0 32px rgba(var(--top-c1, 139, 92, 246), 0.55);
+}
+
+.top-track-play-btn.is-playing:hover {
+    filter: brightness(1.0) saturate(1.15);
+}
+
+.top-track-share-btn {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 14px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    transition:
+        color 0.22s ease,
+        background 0.22s ease,
+        border-color 0.22s ease,
+        transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.25s ease;
+}
+
+.top-track-share-btn:hover {
+    color: #fff;
+    background: rgba(139, 92, 246, 0.14);
+    border-color: rgba(139, 92, 246, 0.28);
+    transform: translateY(-2px);
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.32),
+        0 0 22px rgba(139, 92, 246, 0.22);
+}
+
+.top-track-share-btn:active {
+    transform: scale(0.96);
+}
+
+/* ─────────── Мобильный ─────────── */
+
+@media (max-width: 700px) {
+    .top-track-card-section {
+        padding: 14px !important;
+        border-radius: 18px;
+        position: static !important;   /* на мобилке sticky не нужен */
+    }
+
+    .top-track-card-wrap {
+        border-radius: 14px;
+    }
+
+    .top-track-play-btn {
+        height: 44px;
+        border-radius: 12px;
+    }
+
+    .top-track-share-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+    }
+
+    .top-track-card-title {
+        font-size: 11px;
+        letter-spacing: 1px;
+    }
+}
+
+/* ===========================================================
+   Новинки — центрирование карточек
+   =========================================================== */
+
+.new-releases-block {
+    justify-content: center;
+}
+
+/* ★ Первая карточка отталкивается от левого края,
+      последняя — от правого.
+      Если контент помещается — обе "auto" дадут центрирование.
+      Если контент шире контейнера — auto превратится в 0,
+      и скролл работает как раньше, без обрезки. */
+.new-releases-block > .new-release-card:first-child {
+    margin-left: auto;
+}
+
+.new-releases-block > .new-release-card:last-child {
+    margin-right: auto;
+}
+
+/* Чтобы padding по краям не съедал центрирование
+   на узких экранах */
+@media (max-width: 700px) {
+    .new-releases-block {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
 }

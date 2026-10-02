@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fartify — Слушайте музыку наххер</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/sidebar.css">
+    <link rel="stylesheet" href="css/reviews.css">
     <!-- Динамический base -->
     <script>
         (function() {
@@ -35,6 +37,55 @@
     <!-- Фоновые слои -->
     <div id="bg-layer1" class="bg-layer"></div>
     <div id="bg-layer2" class="bg-layer" style="opacity: 0;"></div>
+
+    <!-- Левая панель навигации -->
+    <aside id="app-sidebar" class="app-sidebar" aria-label="Основная навигация">
+        <div class="app-sidebar-brand">
+            <span class="app-sidebar-brand-mark">F</span>
+            <span class="app-sidebar-brand-name">Fartify</span>
+        </div>
+
+        <nav class="app-sidebar-nav">
+            <a href="/" class="app-sidebar-link" data-nav="home" title="Главная">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 10.5 12 3l9 7.5"/>
+                    <path d="M5 10v10h14V10"/>
+                </svg>
+                <span class="app-sidebar-link-text">Главная</span>
+            </a>
+
+<!--            <a href="/reviews" class="app-sidebar-link" data-nav="reviews" title="Рецензии">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2.5 15 9l7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
+                </svg>
+                <span class="app-sidebar-link-text">Рецензии</span>
+            </a>
+-->
+            <a href="/favorites" class="app-sidebar-link" data-nav="favorites" title="Избранное">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <span class="app-sidebar-link-text">Избранное</span>
+            </a>
+
+            <a href="/chart" class="app-sidebar-link" data-nav="chart" title="Топ-50">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="20" x2="12" y2="10"/>
+                    <line x1="18" y1="20" x2="18" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="16"/>
+                </svg>
+                <span class="app-sidebar-link-text">Топ-50</span>
+            </a>
+        </nav>
+
+        <div class="app-sidebar-footer">
+            <button id="sidebar-toggle" class="app-sidebar-toggle" type="button" title="Свернуть панель" aria-label="Свернуть панель">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+        </div>
+    </aside>
 
     <header>
         <div class="search-wrapper">
@@ -123,8 +174,25 @@
                 </div>
             </section>
 
-
         </div><!-- /#main-content -->
+
+        <!-- Страница рецензий -->
+        <div id="reviews-page" class="reviews-page hidden">
+            <header class="reviews-header">
+                <div class="reviews-header-top">
+                    <h1 class="reviews-title">Рецензии</h1>
+                    <div class="reviews-stats" id="reviews-stats"></div>
+                </div>
+
+                <div class="reviews-tabs" role="tablist">
+                    <button class="reviews-tab is-active" data-tab="albums" role="tab">Альбомы</button>
+                    <button class="reviews-tab" data-tab="tracks" role="tab">Треки</button>
+                </div>
+            </header>
+
+            <div id="reviews-grid" class="reviews-grid"></div>
+            <div id="reviews-empty" class="reviews-empty hidden">Ничего не найдено</div>
+        </div>
 
         <!-- Страница исполнителя -->
         <div id="artist-page" class="artist-page hidden">
@@ -145,22 +213,66 @@
                 </div>
             </div>
 
-            <div class="popular-tracks-section">
-                <h3>Популярные треки</h3>
-                <div class="tracks-header">
-                    <span>#</span>
-                    <span></span>
-                    <span>Название</span>
-                    <span>Прослушивания</span>
-                    <span>Длительность</span>
+            <div class="artist-top-row">
+                <div class="popular-tracks-section">
+                    <div class="popular-tracks-inner">
+                        <h3>Популярные треки</h3>
+                        <div class="tracks-header">
+                            <span>#</span>
+                            <span></span>
+                            <span>Название</span>
+                            <span>Прослушивания</span>
+                            <span>Длительность</span>
+                        </div>
+                        <ul id="popular-tracks-list" class="tracks-list"></ul>
+                        <div class="popular-tracks-actions">
+                            <button id="popular-tracks-toggle" class="popular-tracks-btn" type="button">Ещё</button>
+                        </div>
+                    </div>
                 </div>
-                <ul id="popular-tracks-list" class="tracks-list"></ul>
+
+                <div class="top-track-card-section" id="top-track-card-section" style="display:none;">
+                    <h3 class="top-track-card-title">Самый популярный трек</h3>
+
+                    <div class="top-track-card-wrap">
+                        <div class="top-track-card-loader" id="top-track-card-loader">
+                            <div class="top-track-card-spinner"></div>
+                            <span>Рисуем карточку…</span>
+                        </div>
+                        <img id="top-track-card-img" class="top-track-card-img" alt="" loading="lazy">
+                    </div>
+
+                    <div class="top-track-card-actions">
+                        <button id="top-track-play-btn" class="top-track-play-btn" type="button" title="Слушать" data-file="">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5,3 21,12 5,21"/>
+                            </svg>
+                        </button>
+
+                        <button id="top-track-share-btn" class="top-track-share-btn" type="button" title="Поделиться">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"/>
+                                <circle cx="6" cy="12" r="3"/>
+                                <circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="artist-albums-section">
                 <h3>Музыка</h3>
                 <div id="artist-albums-grid" class="albums-grid"></div>
             </div>
+
+            <div class="artist-feats-section" id="artist-feats-section" style="display:none;">
+                <h3>Ещё с этим исполнителем</h3>
+                <div id="artist-feats-grid" class="albums-grid"></div>
+            </div>
+
+            <div class="artist-page-bottom-spacer"></div>
         </div>
 
         <!-- Плеер -->
@@ -332,9 +444,29 @@
             <!-- Обложка -->
             <img id="lyrics-cover" src="" alt="Обложка" class="lyrics-cover">
 
-            <!-- Название и исполнитель -->
-            <div id="lyrics-now-title" class="lyrics-now-title">Название трека</div>
-            <div id="lyrics-now-artist" class="lyrics-now-artist">Исполнитель</div>
+            <!-- Название, исполнитель и действия -->
+            <div class="lyrics-now-row">
+                <div class="lyrics-now-text">
+                    <div id="lyrics-now-title" class="lyrics-now-title">Название трека</div>
+                    <div id="lyrics-now-artist" class="lyrics-now-artist">Исполнитель</div>
+                </div>
+                <div class="lyrics-now-actions">
+                    <button id="lyrics-fav-btn" class="lyrics-action-btn" type="button" title="В избранное" aria-label="В избранное">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </button>
+                    <button id="lyrics-share-btn" class="lyrics-action-btn" type="button" title="Поделиться" aria-label="Поделиться">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="18" cy="5" r="3"/>
+                            <circle cx="6" cy="12" r="3"/>
+                            <circle cx="18" cy="19" r="3"/>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
 
             <!-- Блок текста (превью) -->
             <div class="lyrics-text-section">
@@ -347,7 +479,7 @@
                 </div>
             </div>
 
-            <!-- Блок «О релизе» (показывается, если есть в release-info.json) -->
+            <!-- Блок «О релизе» -->
             <div id="release-info-block" class="release-info-block hidden">
                 <div class="release-info-head">
                     <span class="release-info-title">О релизе</span>
@@ -569,26 +701,26 @@
     </div>
 
     <!-- Отдельный экран, который открывается при переходе по ссылке -->
-<div id="share-view" class="share-view hidden">
-    <div class="share-view-bg"></div>
-    <div class="share-view-grid"></div>
-    <div class="share-view-inner">
-        <div class="share-view-top">
-            <span class="share-view-brand">FARTIFY</span>
-        </div>
-        <div class="share-view-card-wrap">
-            <img id="share-view-card" class="share-view-card" alt="Карточка">
-        </div>
-        <div class="share-view-actions">
-            <button class="share-view-btn primary" id="share-view-listen" type="button">
-                ▶  Слушать в Fartify
-            </button>
-            <button class="share-view-btn" id="share-view-download" type="button">
-                Скачать карточку
-            </button>
+    <div id="share-view" class="share-view hidden">
+        <div class="share-view-bg"></div>
+        <div class="share-view-grid"></div>
+        <div class="share-view-inner">
+            <div class="share-view-top">
+                <span class="share-view-brand">FARTIFY</span>
+            </div>
+            <div class="share-view-card-wrap">
+                <img id="share-view-card" class="share-view-card" alt="Карточка">
+            </div>
+            <div class="share-view-actions">
+                <button class="share-view-btn primary" id="share-view-listen" type="button">
+                    ▶  Слушать в Fartify
+                </button>
+                <button class="share-view-btn" id="share-view-download" type="button">
+                    Скачать карточку
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- SVG-фильтр для жидкого эффекта фона текста -->
     <svg style="position: absolute; width: 0; height: 0;">
@@ -602,6 +734,25 @@
         </filter>
     </svg>
 
-    <script src="script.js"></script>
+    <!-- Модули JS — порядок важен, менять нельзя -->
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/queue.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/lyrics.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/albums.js"></script>
+    <script src="js/artists.js"></script>
+    <script src="js/playlists.js"></script>
+    <script src="js/recent.js"></script>
+    <script src="js/contextmenu.js"></script>
+    <script src="js/share.js"></script>
+    <script src="js/sponsors.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/reviews.js"></script>
+    <script src="js/equalizer.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

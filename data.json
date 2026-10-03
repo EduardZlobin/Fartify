@@ -903,5 +903,80 @@
                 "plays": "62 449"
             }
         ]
+    },
+    {
+        "title": "Хунта с Хухры",
+        "artist": "RadioGladoon",
+        "cover": "26.png",
+        "date": "2026-10-03",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "В Хухре Хунта",
+                "file": "123.mp3",
+                "duration": "2:06",
+                "plays": "79 343"
+            },
+            {
+                "title": "Движуха",
+                "file": "107.mp3",
+                "duration": "1:56",
+                "plays": "77 547"
+            },
+            {
+                "title": "Додому бiстро 2",
+                "file": "109.mp3",
+                "duration": "2:44",
+                "plays": "57 023"
+            },
+            {
+                "title": "Танцуй Пахметолаг!",
+                "file": "111.mp3",
+                "duration": "2:20",
+                "plays": "67 636"
+            },
+            {
+                "title": "Шайтан Гладун",
+                "file": "113.mp3",
+                "duration": "2:14",
+                "plays": "68 588"
+            },
+            {
+                "title": "Кресло/Кулачек",
+                "file": "98.mp3",
+                "duration": "2:15",
+                "plays": "92 436"
+            },
+            {
+                "title": "Эдюарды",
+                "file": "112.mp3",
+                "duration": "2:51",
+                "plays": "98 235"
+            },
+            {
+                "title": "Эдик возьми телефон",
+                "file": "119.mp3",
+                "duration": "2:05",
+                "plays": "78 604"
+            },
+            {
+                "title": "Пьянство",
+                "file": "120.mp3",
+                "duration": "1:54",
+                "plays": "77 347"
+            },
+            {
+                "title": "Эдуард дровосек",
+                "file": "122.mp3",
+                "duration": "2:31",
+                "plays": "73 483"
+            },
+            {
+                "title": "Насмеши Смешного",
+                "file": "121.mp3",
+                "duration": "2:44",
+                "plays": "86 348"
+            }
+        ]
     }
 ]

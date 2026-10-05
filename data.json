@@ -978,5 +978,20 @@
                 "plays": "86 348"
             }
         ]
+    },
+        {
+        "title": "Вокруг Гладуны",
+        "artist": "RadioGladoon",
+        "cover": "39.png",
+        "date": "2026-10-05",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Вокруг Гладуны",
+                "file": "124.mp3",
+                "duration": "3:34",
+                "plays": "87 436"
+            }
+        ]
     }
 ]

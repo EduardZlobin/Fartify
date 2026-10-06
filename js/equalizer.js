@@ -97,7 +97,7 @@ async function initEqAudioGraph() {
     try {
         audio.pause();
 
-        ctx = new Ctx({ latencyHint: 'playback' });
+        ctx = new Ctx({ latencyHint: 'interactive' });
 
         const source = ctx.createMediaElementSource(audio);
 
@@ -118,7 +118,19 @@ async function initEqAudioGraph() {
 
         source.connect(filters[0]);
         for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
-        filters[filters.length - 1].connect(ctx.destination);
+
+        // ★ Analyser для визуализатора — встраиваем прозрачно в конец цепочки.
+        //   Он ничего не выводит, только «слушает» сигнал.
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.82;
+        analyser.minDecibels = -90;
+        analyser.maxDecibels = -10;
+
+        filters[filters.length - 1].connect(analyser);
+        analyser.connect(ctx.destination);
+
+        EQ.analyser = analyser;
 
         if (ctx.state === 'suspended') {
             await ctx.resume();
@@ -132,6 +144,7 @@ async function initEqAudioGraph() {
         EQ.ctx = ctx;
         EQ.source = source;
         EQ.filters = filters;
+        EQ.analyser = analyser;
         EQ.healthy = true;
         window.__fartifyAudioGraphCreated = true;
 
@@ -151,6 +164,14 @@ async function initEqAudioGraph() {
         } catch (_) {}
         return false;
     }
+}
+
+// ★ Публичный доступ к analyser для визуализатора.
+// Если граф ещё не создан — создаём (прозрачно, звук не меняется).
+async function getEqAnalyser() {
+    if (EQ.analyser) return EQ.analyser;
+    await initEqAudioGraph();
+    return EQ.analyser || null;
 }
 
 // ---------- Применение gain ----------

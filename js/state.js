@@ -16,6 +16,7 @@ let player, audio, playerCover, playerTitle, playerArtist, playerFavBtn, playPau
 let lyricsBtn, lyricsPanel, lyricsCover, lyricsText, lyricsBackground, lyricsCloseBtn, lyricsContext, lyricsNowTitle, lyricsNowArtist, lyricsExpandBtn, lyricsFullOverlay, lyricsFullClose, lyricsFullContent, queueNext, queueFull, queueToggle;
 let imageModal, imageModalImg, closeImageModal;
 let searchInput, searchResults, searchClear;
+let audioVisualizer, visualizerCanvas;
 
 // ---------- Данные ----------
 let allAlbums = [];
@@ -178,4 +179,7 @@ function initDom() {
     searchInput = document.getElementById('search-input');
     searchResults = document.getElementById('search-results');
     searchClear = document.getElementById('search-clear');
+
+    audioVisualizer = document.getElementById('audio-visualizer');
+    visualizerCanvas = document.getElementById('visualizer-canvas');
 }

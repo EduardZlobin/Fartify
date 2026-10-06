@@ -147,6 +147,8 @@ function renderAutoPlaylists() {
     document.querySelectorAll('.playlist-card.auto-playlist').forEach(c => c.remove());
 
     autoPlaylists.forEach(pl => {
+        if (pl.id === 'chart') return;   // ★ не показываем чарт в сетке плейлистов
+
         const card = document.createElement('a');
         card.className = 'playlist-card auto-playlist';
         card.href = (pl.id === 'chart')
@@ -351,4 +353,404 @@ function setupPlaylistEvents() {
     window.addEventListener('click', (e) => {
         if (e.target === playlistModal) closePlaylistAndRestoreUrl();
     });
+}
+
+// ============================================================
+// CUSTOM PLAYLISTS — плейлисты из custom-playlists.json
+// ============================================================
+
+// Поиск трека по имени файла во всех альбомах
+function findTrackDataByFile(file) {
+    if (!file) return null;
+    for (const album of allAlbums) {
+        if (!Array.isArray(album.tracks)) continue;
+        const t = album.tracks.find(x => x.file === file);
+        if (t) {
+            return {
+                file: t.file,
+                title: t.title,
+                artist: album.artist,
+                cover: resolveTrackCover(t, album),
+                albumTitle: album.title,
+                duration: t.duration || '',
+                plays: t.plays || ''
+            };
+        }
+    }
+    return null;
+}
+
+// Сборка customPlaylists из сырого JSON: резолвим файлы в треки
+function buildCustomPlaylists(rawData) {
+    customPlaylists = [];
+
+    const list = Array.isArray(rawData) ? rawData
+               : (rawData && Array.isArray(rawData.playlists) ? rawData.playlists : []);
+
+    list.forEach(pl => {
+        if (!pl || !pl.id || !pl.title) return;
+
+        const files = Array.isArray(pl.tracks) ? pl.tracks : [];
+        const resolved = [];
+        const missed = [];
+
+        files.forEach(file => {
+            const data = findTrackDataByFile(file);
+            if (data) resolved.push(data);
+            else missed.push(file);
+        });
+
+        if (missed.length > 0) {
+            console.warn(`[custom-playlists] "${pl.title}": не найдены треки →`, missed);
+        }
+
+        customPlaylists.push({
+            id: String(pl.id),
+            title: String(pl.title),
+            cover: String(pl.cover || 'photo/placeholder.jpg'),
+            description: pl.description ? String(pl.description) : '',
+            tracks: resolved
+        });
+    });
+
+    renderCustomPlaylists();
+}
+
+// Отрисовка карточек кастомных плейлистов
+function renderCustomPlaylists() {
+    if (!playlistsGrid) return;
+
+    document.querySelectorAll('.playlist-card.custom-playlist').forEach(c => c.remove());
+
+    customPlaylists.forEach(pl => {
+        const card = document.createElement('a');
+        card.className = 'playlist-card custom-playlist';
+        card.href = BASE_PATH + 'playlist/' + encodeURIComponent(pl.id);
+        card.dataset.playlistTitle = pl.title;
+
+        const isAuto = !pl.cover || pl.cover === 'auto';
+        const initialCover = isAuto
+            ? 'photo/placeholder.jpg'
+            : resolveCoverPath(pl.cover);
+
+        card.innerHTML = `
+            <img class="custom-playlist-cover" src="${escapeHtml(initialCover)}"
+                 alt="${escapeHtml(pl.title)}"
+                 onerror="this.src='photo/placeholder.jpg'">
+            <button class="playlist-play-btn" title="Играть">${getPlaySvg(20)}</button>
+            <div class="playlist-name">${escapeHtml(pl.title)}</div>
+            <div class="playlist-track-count">${pl.tracks.length} треков</div>
+        `;
+
+        card.querySelector('.playlist-play-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (pl.tracks.length === 0) return;
+            handlePlaylistPlayClick(pl.title, pl.tracks);
+        });
+
+        playlistsGrid.appendChild(card);
+
+        // ★ Асинхронно подгружаем сгенерированную обложку
+        if (isAuto) {
+            ensureGeneratedCover(pl).then(dataUrl => {
+                if (!dataUrl) return;
+                const img = card.querySelector('.custom-playlist-cover');
+                if (img) img.src = dataUrl;
+            });
+        }
+    });
+
+    updatePlaybackUI();
+}
+
+// Открытие модалки кастомного плейлиста
+async function openCustomPlaylistModal(playlist) {
+    if (!playlist) return;
+
+    const isAuto = !playlist.cover || playlist.cover === 'auto';
+    const coverSrc = isAuto
+        ? (await ensureGeneratedCover(playlist)) || 'photo/placeholder.jpg'
+        : resolveCoverPath(playlist.cover);
+
+    showPlaylistModal({
+        title: playlist.title,
+        cover: coverSrc,
+        tracks: playlist.tracks,
+        showDate: false,
+        showFavorite: false,
+        showAlbum: true,
+        showPlays: true
+    });
+}
+
+// ============================================================
+// ГЕНЕРАЦИЯ КОЛЛАЖНОЙ ОБЛОЖКИ ДЛЯ КАСТОМНЫХ ПЛЕЙЛИСТОВ
+// ============================================================
+
+// Резолв пути к обложке (для явно указанных в JSON)
+function resolveCoverPath(path) {
+    if (!path) return 'photo/placeholder.jpg';
+    if (/^[a-z]+:/i.test(path)) return path;
+    if (path.startsWith('/')) return path;
+    if (path.startsWith('photo/') || path.startsWith('custom/')) return path;
+    return BASE_PATH + path;
+}
+
+// Загрузка картинки для canvas
+function loadCoverImage(src) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+    });
+}
+
+// Выбрать N уникальных обложек (исключая placeholder)
+function pickUniqueCovers(tracks, count) {
+    const seen = new Set();
+    const result = [];
+    for (const t of tracks) {
+        if (!t || !t.cover) continue;
+        if (t.cover === 'placeholder.jpg') continue;
+        if (seen.has(t.cover)) continue;
+        seen.add(t.cover);
+        result.push(t.cover);
+        if (result.length >= count) break;
+    }
+    return result;
+}
+
+// Cover-fill: заполнить прямоугольник, сохранив пропорции
+function drawCoverFill(ctx, img, x, y, w, h) {
+    const ir = img.width / img.height;
+    const tr = w / h;
+    let dw, dh, dx, dy;
+    if (ir > tr) {
+        dh = h; dw = h * ir;
+        dx = x + (w - dw) / 2; dy = y;
+    } else {
+        dw = w; dh = w / ir;
+        dx = x; dy = y + (h - dh) / 2;
+    }
+    ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+// Круглая маска
+function drawCircleCover(ctx, img, cx, cy, radius) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.clip();
+    drawCoverFill(ctx, img, cx - radius, cy - radius, radius * 2, radius * 2);
+    ctx.restore();
+}
+
+// Извлечение доминирующих цветов из картинки
+function extractDominantColors(img, maxColors = 3) {
+    try {
+        const S = 32;
+        const c = document.createElement('canvas');
+        c.width = S; c.height = S;
+        const cx = c.getContext('2d');
+        cx.drawImage(img, 0, 0, S, S);
+        const data = cx.getImageData(0, 0, S, S).data;
+        const buckets = {};
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+            if (a < 128) continue;
+
+            const brightness = (r + g + b) / 3;
+            if (brightness < 25 || brightness > 235) continue;
+
+            const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+            const sat = (mx - mn) / (mx || 1);
+            if (sat < 0.15) continue;
+
+            const qr = Math.round(r / 40) * 40;
+            const qg = Math.round(g / 40) * 40;
+            const qb = Math.round(b / 40) * 40;
+            const key = qr + ',' + qg + ',' + qb;
+            buckets[key] = (buckets[key] || 0) + 1;
+        }
+
+        const sorted = Object.entries(buckets)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, maxColors);
+
+        if (!sorted.length) return null;
+        return sorted.map(([k]) => k.split(',').map(Number));
+    } catch (e) {
+        return null;
+    }
+}
+
+// Хэш от строки → стабильный integer (для выбора вариаций)
+function hashStringToInt(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) {
+        h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h);
+}
+
+// ── Основной генератор ──
+async function generatePlaylistCollage(covers, seed = '') {
+    const SIZE = 600;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+
+    const imgs = (await Promise.all(
+        covers.map(c => loadCoverImage(`photo/${c}`))
+    )).filter(Boolean);
+
+    if (imgs.length === 0) return null;
+
+    const centerImg = imgs[0];
+
+    // ★ Достаём доминирующие цвета из центральной обложки
+    let colorA = [139, 92, 246];   // fallback — фирменный фиолетовый
+    let colorB = [236, 72, 153];   // fallback — фирменный розовый
+    let colorC = [56, 189, 248];   // fallback — голубой
+
+    const colors = extractDominantColors(centerImg, 3);
+    if (colors && colors.length >= 2) {
+        colorA = colors[0];
+        colorB = colors[1];
+        colorC = colors[2] || colors[0];
+    }
+
+    // ★ Регулярный сдвиг градиента по seed — чтобы плейлисты визуально отличались
+    const seedNum = hashStringToInt(seed || 'x');
+    const angle = (seedNum % 360) * Math.PI / 180;
+
+    // ── 1. Тёмная база
+    ctx.fillStyle = '#08080d';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // ── 2. Диагональный линейный градиент из двух доминирующих цветов
+    const dx = Math.cos(angle), dy = Math.sin(angle);
+    const gx1 = SIZE / 2 - dx * SIZE / 2;
+    const gy1 = SIZE / 2 - dy * SIZE / 2;
+    const gx2 = SIZE / 2 + dx * SIZE / 2;
+    const gy2 = SIZE / 2 + dy * SIZE / 2;
+
+    const linGrad = ctx.createLinearGradient(gx1, gy1, gx2, gy2);
+    linGrad.addColorStop(0,    `rgba(${colorA[0]},${colorA[1]},${colorA[2]},1)`);
+    linGrad.addColorStop(0.55, `rgba(${colorB[0]},${colorB[1]},${colorB[2]},1)`);
+    linGrad.addColorStop(1,    `rgba(${colorC[0]},${colorC[1]},${colorC[2]},1)`);
+    ctx.fillStyle = linGrad;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // ── 3. Тёмное затемнение сверху и снизу, чтобы читались кружки
+    const darken = ctx.createLinearGradient(0, 0, 0, SIZE);
+    darken.addColorStop(0,    'rgba(0,0,0,0.55)');
+    darken.addColorStop(0.35, 'rgba(0,0,0,0.15)');
+    darken.addColorStop(0.65, 'rgba(0,0,0,0.20)');
+    darken.addColorStop(1,    'rgba(0,0,0,0.70)');
+    ctx.fillStyle = darken;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // ── 4. Мягкое радиальное свечение в центре
+    const glowRadius = SIZE * 0.55;
+    const glow = ctx.createRadialGradient(SIZE/2, SIZE/2, 0, SIZE/2, SIZE/2, glowRadius);
+    glow.addColorStop(0,   `rgba(${colorB[0]},${colorB[1]},${colorB[2]},0.28)`);
+    glow.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // ── 5. Координаты кружков
+    //   центр — большая (r=175), по бокам меньшие (r=105),
+    //   левая чуть выше центра, правая чуть ниже — для динамики
+    const centerR = 175;
+    const sideR   = 105;
+    const cX = SIZE / 2,       cY = SIZE / 2;
+    const lX = 108,            lY = SIZE / 2 - 45;
+    const rX = SIZE - 108,     rY = SIZE / 2 + 45;
+
+    // ── 6. Тень/свечение под каждым кружком
+    function drawCircleShadow(cx, cy, r) {
+        const shadow = ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, r * 1.6);
+        shadow.addColorStop(0, 'rgba(0,0,0,0.55)');
+        shadow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = shadow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 1.6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    drawCircleShadow(lX, lY, sideR);
+    drawCircleShadow(rX, rY, sideR);
+    drawCircleShadow(cX, cY, centerR);
+
+    // ── 7. Сами кружки (сначала боковые, потом центральный поверх)
+    if (imgs.length >= 3) {
+        drawCircleCover(ctx, imgs[1], lX, lY, sideR);
+        drawCircleCover(ctx, imgs[2], rX, rY, sideR);
+    } else if (imgs.length === 2) {
+        drawCircleCover(ctx, imgs[1], lX, lY, sideR);
+        drawCircleCover(ctx, imgs[1], rX, rY, sideR);
+    }
+
+    drawCircleCover(ctx, centerImg, cX, cY, centerR);
+
+    // ── 8. Светлый rim на каждом круге (тонкий, полупрозрачный)
+    function drawCircleRim(cx, cy, r, alpha) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    if (imgs.length >= 2) {
+        drawCircleRim(lX, lY, sideR, 0.22);
+        drawCircleRim(rX, rY, sideR, 0.22);
+    }
+    drawCircleRim(cX, cY, centerR, 0.32);
+
+    // ── 9. Виньетка по краям
+    const vignette = ctx.createRadialGradient(
+        SIZE / 2, SIZE / 2, SIZE * 0.32,
+        SIZE / 2, SIZE / 2, SIZE * 0.82
+    );
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.60)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    // ── 10. Верхний блик
+    const sheen = ctx.createLinearGradient(0, 0, 0, SIZE * 0.4);
+    sheen.addColorStop(0, 'rgba(255,255,255,0.09)');
+    sheen.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, SIZE, SIZE);
+
+    return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+// ── Кэш: сгенерированная обложка живёт в памяти до перезагрузки ──
+function ensureGeneratedCover(pl) {
+    if (pl._generatedCover) return Promise.resolve(pl._generatedCover);
+    if (pl._coverPromise) return pl._coverPromise;
+
+    pl._coverPromise = (async () => {
+        const covers = pickUniqueCovers(pl.tracks, 3);
+        if (covers.length === 0) {
+            pl._generatedCover = 'photo/placeholder.jpg';
+            return pl._generatedCover;
+        }
+        const dataUrl = await generatePlaylistCollage(covers, pl.id || pl.title || '');
+        pl._generatedCover = dataUrl || 'photo/placeholder.jpg';
+        return pl._generatedCover;
+    })();
+
+    return pl._coverPromise;
 }

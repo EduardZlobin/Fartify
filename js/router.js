@@ -100,14 +100,22 @@ function handleRouting() {
             if (chart) { openAutoPlaylistModal(chart); return; }
         }
 
-        // /playlist/<id>
+        // /playlist/<id> — авто (числовой id) или кастомный (строковый slug)
         if (segments[0] === 'playlist' && segments[1]) {
-            console.log('[router] → openAutoPlaylistModal (playlist)');
-            const plId = parseInt(segments[1], 10);
-            const pl = Number.isFinite(plId)
-                ? autoPlaylists.find(p => p.id === plId)
-                : null;
-            if (pl) { openAutoPlaylistModal(pl); return; }
+            const slug = safeDecode(segments[1]);
+
+            // 1) Авто-плейлист (числовой id)
+            const plId = parseInt(slug, 10);
+            if (Number.isFinite(plId) && String(plId) === slug) {
+                const pl = autoPlaylists.find(p => p.id === plId);
+                if (pl) { openAutoPlaylistModal(pl); return; }
+            }
+
+            // 2) Кастомный плейлист
+            const custom = customPlaylists.find(p => p.id === slug);
+            if (custom) { openCustomPlaylistModal(custom); return; }
+
+            console.warn('[router] playlist not found:', slug);
         }
 
         // /Artist/<name>

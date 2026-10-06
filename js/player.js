@@ -317,8 +317,11 @@ function updatePlaybackUI() {
 
     if (currentTrackMeta) updateLyricsNowPlaying(currentTrackMeta);
     renderQueue();
-    
-        // ★ Обновляем иконку и состояние у кнопки топ-трека на странице артиста
+
+    // ★ Обновляем play/pause в hero-блоках
+    if (typeof updateHeroPlayState === 'function') updateHeroPlayState();
+
+    // ★ Обновляем иконку и состояние у кнопки топ-трека на странице артиста
     const topTrackBtn = document.getElementById('top-track-play-btn');
     if (topTrackBtn) {
         const topFile = topTrackBtn.dataset.file;
@@ -614,6 +617,8 @@ function setupPlayerEvents() {
         if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
         savePlayerState();
     });
+
+    
 
     // Громкость
     volumeBar.addEventListener('input', () => {

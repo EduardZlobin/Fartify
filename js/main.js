@@ -24,6 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 5. Эквалайзер
     initEqualizer();
+        // 5.5 Полноэкранный визуализатор
+    initVisualizer();
 
     // 6. Обработчики плеера
     setupPlayerEvents();
@@ -71,9 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('artist-of-year.json').then(r => r.json()).catch(() => null),
         fetch('live_text.json').then(r => r.json()).catch(() => ({})),
         fetch('release-info.json').then(r => r.json()).catch(() => ({})),
+        fetch('custom-playlists.json').then(r => r.json()).catch(() => []),
         fetch('feats.json').then(r => r.json()).catch(() => ({}))
     ])
-    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData, liveData, releaseInfoData, featsDataRaw]) => {
+    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData, liveData, releaseInfoData, customPlaylistsData, featsDataRaw]) => {
         allAlbums = albumsData;
 
         artistsMap = {};
@@ -89,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         liveTexts = liveData || {};
         releaseInfo = releaseInfoData || {};
         featsData = featsDataRaw || {};
+        buildCustomPlaylists(customPlaylistsData);
 
         // Рендер секций
         buildUniqueArtists(albumsData);
@@ -179,4 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const index = album.tracks.findIndex(t => t.file === track.file);
         if (index !== -1) playTrackByIndex(index);
     };
+
+    // 15. Глобальный перехватчик кликов по именам артистов
+    // ★ capture: true — срабатывает ПЕРВЫМ, до всех локальных обработчиков
+    document.addEventListener('click', handleArtistLinkClick, true);
 });

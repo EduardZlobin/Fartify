@@ -255,9 +255,39 @@ function updateLyricsPanel(track) {
 let __lyricsAutoScrolling = false;       // идёт автопрокрутка — игнорируем события scroll
 let __lyricsScrollPauseUntil = 0;        // до какого момента не автопрокручивать
 
+// ────────────────────────────────────────────────────────────
+// ★ Компенсация задержки Web Audio графа.
+// audio.currentTime опережает то, что реально слышно из колонок
+// на величину outputLatency. Караоке должно ориентироваться
+// на звук, а не на позицию декодера.
+// ────────────────────────────────────────────────────────────
+function getKaraokeTime() {
+    let lat = 0;
+
+    const EQ = window.__fartifyEq;
+    if (EQ && EQ.ctx && EQ.healthy) {
+        const ctxLat = EQ.ctx.outputLatency;
+        if (typeof ctxLat === 'number' && isFinite(ctxLat) && ctxLat > 0) {
+            lat = ctxLat;
+        }
+    }
+
+    // ★ Ручная поправка через консоль (если авто не справляется):
+    //   localStorage.setItem('fartify_karaoke_offset', '1.7')
+    //   localStorage.removeItem('fartify_karaoke_offset')
+    // Знак: положительное → сдвинуть караоке позже (если оно убегает вперёд),
+    //       отрицательное → сдвинуть раньше (если караоке отстаёт).
+    const manual = parseFloat(localStorage.getItem('fartify_karaoke_offset') || '0');
+    if (isFinite(manual)) lat += manual;
+
+    return Math.max(0, audio.currentTime - lat);
+}
+
 function updateKaraokeLines() {
     if (!currentLyricLines.length) return;
-    const t = audio.currentTime;
+
+    const t = getKaraokeTime();   // ← единственное изменение
+
     let newActiveIndex = -1;
     for (let i = 0; i < currentLyricLines.length; i++) {
         const lineTime = parseFloat(currentLyricLines[i].dataset.time);
@@ -276,7 +306,6 @@ function updateKaraokeLines() {
     activeLyricIndex = newActiveIndex;
 
     if (newActiveIndex >= 0) {
-        // ★ Автопрокрутка откладывается, если пользователь сам листал
         if (Date.now() < __lyricsScrollPauseUntil) return;
 
         const el = currentLyricLines[newActiveIndex];
@@ -288,7 +317,6 @@ function updateKaraokeLines() {
         __lyricsAutoScrolling = true;
         container.scrollTo({ top: targetTop, behavior: 'smooth' });
 
-        // Снимаем флаг, когда smooth-scroll закончился
         clearTimeout(window.__lyricsAutoScrollTimer);
         window.__lyricsAutoScrollTimer = setTimeout(() => {
             __lyricsAutoScrolling = false;

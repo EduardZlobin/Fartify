@@ -1757,221 +1757,310 @@ a.artist-card {
 }
 
 /* ===========================================
-   НОВИНКИ
+   НОВИНКИ v3 — бесконечная лента
    =========================================== */
+
 .new-releases-block {
     position: relative;
-    display: flex;
-    gap: 18px;
-    padding: 60px 26px 26px;
-    border-radius: 16px;
-    min-height: 320px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: thin;
-    scroll-behavior: smooth;
+    isolation: isolate;
+    overflow: hidden;      /* скрываем вылезающие карточки ленты */
+    padding: 78px 0 32px;  /* убираем боковые padding — их заменит внутренний трек */
+    border-radius: 22px;
+    min-height: 400px;
 
     background:
-        radial-gradient(circle at 0% 0%, rgba(123,47,247,0.18) 0%, transparent 45%),
-        radial-gradient(circle at 100% 100%, rgba(233,30,99,0.12) 0%, transparent 50%),
-        linear-gradient(135deg, #16121e 0%, #0d0d13 60%, #120b1a 100%);
+        radial-gradient(ellipse 60% 50% at 8% 0%,
+            rgba(var(--lyrics-c1, 139, 92, 246), .16), transparent 55%),
+        radial-gradient(ellipse 55% 45% at 95% 100%,
+            rgba(var(--lyrics-c2, 236, 72, 153), .13), transparent 55%),
+        linear-gradient(150deg,
+            #16141f 0%,
+            #0d0d13 55%,
+            #140b18 100%);
 
-    border: 1px solid transparent;
-    background-clip: padding-box;
-
+    border: 1px solid rgba(255, 255, 255, .08);
     box-shadow:
-        0 8px 30px rgba(0,0,0,0.55),
-        0 0 0 1px rgba(123,47,247,0.25) inset,
-        0 0 20px rgba(123,47,247,0.12);
+        0 30px 60px rgba(0, 0, 0, .5),
+        0 0 0 1px rgba(139, 92, 246, .08) inset,
+        inset 0 1px 0 rgba(255, 255, 255, .04);
 }
 
-.new-releases-block::after {
+/* Верхняя светящаяся линия */
+.new-releases-block::before {
     content: "";
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    z-index: 3;
     background: linear-gradient(90deg,
         transparent 0%,
-        rgba(123,47,247,0.9) 30%,
-        rgba(233,30,99,0.9) 70%,
+        rgba(var(--lyrics-c1, 139, 92, 246), .8) 25%,
+        rgba(var(--lyrics-c2, 236, 72, 153), .75) 70%,
         transparent 100%);
-    border-radius: 16px 16px 0 0;
+    filter: blur(.4px);
     pointer-events: none;
 }
 
-.new-releases-block::before {
+/* Заголовок «НОВИНКИ» */
+.new-releases-block::after {
     content: "НОВИНКИ";
     position: absolute;
-    top: 20px;
-    left: 26px;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 2.5px;
+    top: 26px;
+    left: 34px;
+    z-index: 3;
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 3px;
     padding-left: 12px;
     line-height: 1;
-    background: linear-gradient(90deg, #7B2FF7 0%, #e91e63 100%);
+    background: linear-gradient(90deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     border-left: 3px solid;
-    border-image: linear-gradient(180deg, #7B2FF7 0%, #e91e63 100%) 1;
+    border-image: linear-gradient(180deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153))) 1;
+    pointer-events: none;
 }
 
-.new-releases-block::-webkit-scrollbar { height: 6px; }
-.new-releases-block::-webkit-scrollbar-track { background: transparent; }
-.new-releases-block::-webkit-scrollbar-thumb {
-    background: linear-gradient(90deg, rgba(123,47,247,0.5), rgba(233,30,99,0.5));
-    border-radius: 3px;
+/* Затемнение по краям — мягкие «шторки» */
+.new-releases-block .new-releases-track::before,
+.new-releases-block .new-releases-track::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 90px;
+    z-index: 4;
+    pointer-events: none;
 }
-.new-releases-block::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(90deg, rgba(123,47,247,0.9), rgba(233,30,99,0.9));
+.new-releases-block .new-releases-track::before {
+    left: 0;
+    background: linear-gradient(90deg,
+        #16141f 0%,
+        transparent 100%);
 }
+.new-releases-block .new-releases-track::after {
+    right: 0;
+    background: linear-gradient(-90deg,
+        #140b18 0%,
+        transparent 100%);
+}
+
+/* ─────────────────────────────────
+   Бесконечный трек с карточками
+   ───────────────────────────────── */
+
+.new-releases-track {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+    width: max-content;
+    padding: 0 32px;   /* внутренние отступы, чтобы карточки не прилипали к краям */
+    animation: newReleasesMarquee 40s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+@keyframes newReleasesMarquee {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ★ Пауза при наведении на любую часть блока */
+.new-releases-block:hover .new-releases-track,
+.new-releases-block:focus-within .new-releases-track {
+    animation-play-state: paused;
+}
+
+/* ─────────────────────────────────
+   Карточка новинки
+   ───────────────────────────────── */
 
 .new-release-card {
     position: relative;
-    flex: 0 0 180px;
-    width: 180px;
-    border-radius: 12px;
+    flex: 0 0 220px;
+    width: 220px;
+    border-radius: 16px;
     overflow: hidden;
-    background: linear-gradient(180deg, #1a1624 0%, #12121a 100%);
-    border: 1px solid rgba(123,47,247,0.2);
     cursor: pointer;
     text-decoration: none;
     color: inherit;
-    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+
+    background: linear-gradient(180deg,
+        rgba(28, 25, 40, .92) 0%,
+        rgba(14, 13, 20, .96) 100%);
+    border: 1px solid rgba(255, 255, 255, .07);
+
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, .4),
+        inset 0 1px 0 rgba(255, 255, 255, .04);
+
+    transition:
+        transform .4s cubic-bezier(.16, 1, .3, 1),
+        border-color .3s ease,
+        box-shadow .4s ease;
 }
 
-.new-release-card::before {
+.new-release-card::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, transparent 40%, rgba(123,47,247,0.08) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
     pointer-events: none;
-    z-index: 1;
+    opacity: 0;
+    border-radius: inherit;
+    background:
+        radial-gradient(circle at 30% 0%,
+            rgba(255, 255, 255, .08), transparent 40%),
+        linear-gradient(180deg,
+            rgba(var(--lyrics-c1, 139, 92, 246), .08), transparent 55%);
+    transition: opacity .4s ease;
 }
 
 .new-release-card:hover {
     transform: translateY(-6px);
-    border-color: rgba(123,47,247,0.6);
+    border-color: rgba(var(--lyrics-c1, 139, 92, 246), .45);
     box-shadow:
-        0 14px 30px rgba(0,0,0,0.6),
-        0 0 0 1px rgba(123,47,247,0.4),
-        0 0 24px rgba(123,47,247,0.35);
+        0 22px 44px rgba(0, 0, 0, .5),
+        0 0 0 1px rgba(var(--lyrics-c1, 139, 92, 246), .2),
+        0 0 32px rgba(var(--lyrics-c1, 139, 92, 246), .18),
+        inset 0 1px 0 rgba(255, 255, 255, .08);
 }
+
+.new-release-card:hover::after { opacity: 1; }
 
 .new-release-card.is-playing {
-    transform: translateY(-6px) scale(1.03);
-    border-color: rgba(123,47,247,0.55);
+    transform: translateY(-4px) scale(1.02);
+    border-color: rgba(var(--lyrics-c1, 139, 92, 246), .55);
     box-shadow:
-        0 14px 30px rgba(0,0,0,0.6),
-        0 0 0 1px rgba(123,47,247,0.35),
-        0 0 24px rgba(123,47,247,0.3);
-    z-index: 2;
+        0 22px 46px rgba(0, 0, 0, .5),
+        0 0 0 1px rgba(var(--lyrics-c1, 139, 92, 246), .3),
+        0 0 36px rgba(var(--lyrics-c1, 139, 92, 246), .25);
 }
-
-.new-release-card:hover::before { opacity: 1; }
 
 .new-release-card img {
     width: 100%;
     aspect-ratio: 1 / 1;
     object-fit: cover;
     display: block;
-    transition: transform 0.5s ease;
+    transition: transform .6s cubic-bezier(.16, 1, .3, 1);
 }
+
 .new-release-card:hover img { transform: scale(1.05); }
 
 .new-release-info {
-    padding: 14px 14px 16px;
     position: relative;
     z-index: 2;
+    padding: 16px 18px 20px;
 }
 
 .new-release-title {
-    font-weight: 700;
-    font-size: 15px;
+    font-weight: 750;
+    font-size: 16px;
+    line-height: 1.25;
     color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 4px;
+    letter-spacing: -.015em;
+    margin-bottom: 5px;
 }
 
 .new-release-artist {
-    font-size: 12px;
-    color: #9a9aa5;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, .5);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .new-release-date {
-    font-size: 11px;
-    font-weight: 700;
-    margin-top: 10px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, #7B2FF7 0%, #e91e63 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
     display: inline-block;
+    margin-top: 12px;
+    padding: 3px 9px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(135deg,
+        rgba(var(--lyrics-c1, 139, 92, 246), .85),
+        rgba(var(--lyrics-c2, 236, 72, 153), .85));
+    border-radius: 20px;
+    box-shadow:
+        0 4px 14px rgba(var(--lyrics-c1, 139, 92, 246), .35),
+        inset 0 1px 0 rgba(255, 255, 255, .2);
 }
 
 .new-release-badge {
     position: absolute;
     top: 12px;
     left: 12px;
-    padding: 5px 10px;
+    z-index: 3;
+    padding: 5px 11px;
     font-size: 9px;
-    font-weight: 800;
+    font-weight: 850;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: #fff;
-    border-radius: 6px;
-    z-index: 3;
-    background: linear-gradient(135deg, #7B2FF7 0%, #e91e63 100%);
+    border-radius: 8px;
+    background: linear-gradient(135deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
     box-shadow:
-        0 4px 12px rgba(123,47,247,0.55),
-        0 0 0 1px rgba(255,255,255,0.08) inset;
-    animation: badgeGlow 3s ease-in-out infinite;
+        0 6px 16px rgba(var(--lyrics-c1, 139, 92, 246), .5),
+        inset 0 1px 0 rgba(255, 255, 255, .22);
+    animation: nrBadgeGlow 3s ease-in-out infinite;
 }
 
-@keyframes badgeGlow {
+@keyframes nrBadgeGlow {
     0%, 100% {
-        box-shadow: 0 4px 12px rgba(123,47,247,0.55),
-                    0 0 0 1px rgba(255,255,255,0.08) inset;
+        box-shadow:
+            0 6px 16px rgba(var(--lyrics-c1, 139, 92, 246), .5),
+            inset 0 1px 0 rgba(255, 255, 255, .22);
     }
     50% {
-        box-shadow: 0 4px 20px rgba(233,30,99,0.75),
-                    0 0 0 1px rgba(255,255,255,0.15) inset;
+        box-shadow:
+            0 6px 24px rgba(var(--lyrics-c2, 236, 72, 153), .75),
+            0 0 20px rgba(var(--lyrics-c1, 139, 92, 246), .4),
+            inset 0 1px 0 rgba(255, 255, 255, .3);
     }
 }
 
 .new-release-play {
     position: absolute;
-    bottom: 80px;
-    right: 12px;
-    width: 38px;
-    height: 38px;
+    bottom: 96px;
+    right: 14px;
+    z-index: 4;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: none;
-    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 4;
-    background: linear-gradient(135deg, #7B2FF7 0%, #9D4EDD 100%);
+    color: #fff;
+    background: linear-gradient(135deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
     box-shadow:
-        0 6px 16px rgba(0,0,0,0.55),
-        0 0 0 1px rgba(255,255,255,0.1) inset;
+        0 10px 24px rgba(0, 0, 0, .5),
+        0 6px 18px rgba(var(--lyrics-c1, 139, 92, 246), .35),
+        inset 0 1px 0 rgba(255, 255, 255, .22);
     opacity: 0;
-    transform: translateY(8px) scale(0.9);
-    transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s ease;
+    transform: translateY(10px) scale(.9);
+    transition:
+        opacity .3s ease,
+        transform .3s cubic-bezier(.16, 1, .3, 1),
+        filter .25s ease;
 }
 
 .new-release-card:hover .new-release-play {
@@ -1982,15 +2071,178 @@ a.artist-card {
 .new-release-card .new-release-play.is-playing-state {
     opacity: 1;
     transform: translateY(0) scale(1);
-    box-shadow:
-        0 6px 18px rgba(123,47,247,0.7),
-        0 0 0 1px rgba(255,255,255,0.15) inset,
-        0 0 22px rgba(123,47,247,0.55);
+    animation: nrPlayPulse 2.2s ease-in-out infinite;
 }
 
 .new-release-play:hover {
-    background: linear-gradient(135deg, #9D4EDD 0%, #e91e63 100%);
+    filter: brightness(1.1) saturate(1.05);
     transform: scale(1.08);
+}
+
+@keyframes nrPlayPulse {
+    0%, 100% {
+        box-shadow:
+            0 10px 24px rgba(0, 0, 0, .5),
+            0 6px 18px rgba(var(--lyrics-c1, 139, 92, 246), .35),
+            inset 0 1px 0 rgba(255, 255, 255, .22);
+    }
+    50% {
+        box-shadow:
+            0 10px 24px rgba(0, 0, 0, .5),
+            0 8px 28px rgba(var(--lyrics-c2, 236, 72, 153), .55),
+            0 0 32px rgba(var(--lyrics-c1, 139, 92, 246), .35),
+            inset 0 1px 0 rgba(255, 255, 255, .3);
+    }
+}
+
+/* ─────────────────────────────────
+   Заглушка, когда новинок нет
+   ───────────────────────────────── */
+
+.new-releases-block.is-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 340px;
+    padding: 78px 32px 44px;
+    background:
+        radial-gradient(ellipse 60% 55% at 50% 50%,
+            rgba(var(--lyrics-c1, 139, 92, 246), .06), transparent 60%),
+        linear-gradient(150deg,
+            #131019 0%,
+            #0b0b11 60%,
+            #100a14 100%);
+}
+
+.new-releases-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    max-width: 400px;
+    padding: 0 20px;
+    animation: nrEmptyIn .6s cubic-bezier(.16, 1, .3, 1);
+}
+
+@keyframes nrEmptyIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.new-releases-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    color: rgba(var(--lyrics-c1, 139, 92, 246), .9);
+    background:
+        radial-gradient(circle at 30% 25%,
+            rgba(var(--lyrics-c1, 139, 92, 246), .18), transparent 70%),
+        linear-gradient(145deg,
+            rgba(255, 255, 255, .06),
+            rgba(255, 255, 255, .015));
+    border: 1px solid rgba(var(--lyrics-c1, 139, 92, 246), .28);
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, .35),
+        0 0 30px rgba(var(--lyrics-c1, 139, 92, 246), .18),
+        inset 0 1px 0 rgba(255, 255, 255, .08);
+    animation: nrEmptyIconPulse 3.2s ease-in-out infinite;
+}
+
+@keyframes nrEmptyIconPulse {
+    0%, 100% {
+        box-shadow:
+            0 14px 34px rgba(0, 0, 0, .35),
+            0 0 30px rgba(var(--lyrics-c1, 139, 92, 246), .18),
+            inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+    50% {
+        box-shadow:
+            0 14px 34px rgba(0, 0, 0, .35),
+            0 0 50px rgba(var(--lyrics-c1, 139, 92, 246), .35),
+            inset 0 1px 0 rgba(255, 255, 255, .12);
+    }
+}
+
+.new-releases-empty-title {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: #fff;
+    background: linear-gradient(90deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        #ffffff 50%,
+        rgb(var(--lyrics-c2, 236, 72, 153)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.new-releases-empty-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, .42);
+    max-width: 320px;
+}
+
+/* ─────────────────────────────────
+   Мобильный
+   ───────────────────────────────── */
+
+@media (max-width: 700px) {
+    .new-releases-block {
+        padding: 68px 0 24px;
+        border-radius: 18px;
+        min-height: 340px;
+    }
+
+    .new-releases-block::after {
+        top: 22px;
+        left: 24px;
+        font-size: 10px;
+        letter-spacing: 2.4px;
+    }
+
+    .new-releases-track { gap: 14px; padding: 0 18px; }
+
+    .new-release-card {
+        flex: 0 0 180px;
+        width: 180px;
+    }
+
+    .new-release-info { padding: 12px 14px 16px; }
+    .new-release-title { font-size: 14px; }
+    .new-release-artist { font-size: 11.5px; }
+    .new-release-date { font-size: 9px; margin-top: 10px; padding: 3px 8px; }
+
+    .new-release-play {
+        bottom: 82px;
+        right: 12px;
+        width: 38px;
+        height: 38px;
+    }
+
+    .new-releases-empty-icon { width: 64px; height: 64px; }
+    .new-releases-empty-icon svg { width: 34px; height: 34px; }
+    .new-releases-empty-title { font-size: 17px; }
+    .new-releases-empty-text { font-size: 12px; }
+}
+
+/* ─────────────────────────────────
+   Reduced motion — отключаем бег ленты
+   ───────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .new-releases-track {
+        animation: none !important;
+        transform: none !important;
+    }
+    .new-releases-block {
+        overflow-x: auto;
+    }
 }
 
 /* ===========================================
@@ -9329,4 +9581,1023 @@ body > .player {
         padding-left: 14px;
         padding-right: 14px;
     }
+}
+
+/* ===========================================
+   SPLIT-HERO — свежий релиз + боковые блоки
+   =========================================== */
+
+.hero-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 18px;
+    margin: 24px auto 44px;
+    max-width: 1400px;
+    padding: 0 clamp(20px, 4vw, 56px);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+@media (max-width: 1100px) {
+    .hero-split {
+        grid-template-columns: minmax(0, 1fr) 280px;
+    }
+}
+
+@media (max-width: 900px) {
+    .hero-split {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 0 16px;
+        margin: 16px auto 32px;
+    }
+}
+
+/* ─────────────────────────────────
+   Левая колонка: свежий релиз
+   ───────────────────────────────── */
+
+.hero-new-release {
+    position: relative;
+    isolation: isolate;
+    padding: 26px 28px 24px;
+    border-radius: 24px;
+    min-height: 440px;
+
+    background:
+        radial-gradient(ellipse 60% 55% at 8% 0%,
+            rgba(var(--lyrics-c1, 139, 92, 246), .18), transparent 55%),
+        radial-gradient(ellipse 55% 50% at 95% 100%,
+            rgba(var(--lyrics-c2, 236, 72, 153), .14), transparent 55%),
+        linear-gradient(150deg,
+            #16141f 0%,
+            #0c0c12 55%,
+            #140b18 100%);
+
+    border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow:
+        0 30px 60px rgba(0, 0, 0, .45),
+        inset 0 1px 0 rgba(255, 255, 255, .04);
+    overflow: hidden;
+    animation: heroNewIn .7s cubic-bezier(.16, 1, .3, 1);
+}
+
+@keyframes heroNewIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Светящаяся линия сверху */
+.hero-new-release::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    z-index: 2;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(var(--lyrics-c1, 139, 92, 246), .85) 25%,
+        rgba(var(--lyrics-c2, 236, 72, 153), .8) 72%,
+        transparent 100%);
+    filter: blur(.4px);
+    pointer-events: none;
+}
+
+.hero-new-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-bottom: 20px;
+    font-size: 9.5px;
+    font-weight: 850;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .82);
+    border-radius: 20px;
+
+    /* ★ Нейтральный тёмный бейдж вместо градиента */
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .12);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .06),
+        0 4px 14px rgba(0, 0, 0, .25);
+}
+
+@keyframes heroNewBadgeGlow {
+    0%, 100% {
+        box-shadow:
+            0 8px 20px rgba(var(--lyrics-c1, 139, 92, 246), .38),
+            inset 0 1px 0 rgba(255, 255, 255, .22);
+    }
+    50% {
+        box-shadow:
+            0 8px 28px rgba(var(--lyrics-c2, 236, 72, 153), .65),
+            0 0 26px rgba(var(--lyrics-c1, 139, 92, 246), .35),
+            inset 0 1px 0 rgba(255, 255, 255, .3);
+    }
+}
+
+.hero-new-grid {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+@media (max-width: 700px) {
+    .hero-new-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+}
+
+/* Обложка + кнопка */
+.hero-new-cover-wrap {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow:
+        0 24px 50px rgba(0, 0, 0, .55),
+        0 0 0 1px rgba(255, 255, 255, .06),
+        0 0 50px rgba(var(--lyrics-c1, 139, 92, 246), .22);
+    transition: transform .45s cubic-bezier(.16, 1, .3, 1);
+}
+
+.hero-new-cover-wrap:hover {
+    transform: translateY(-4px);
+}
+
+.hero-new-cover-wrap img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+}
+
+.hero-new-play {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    background:
+        radial-gradient(circle at 30% 25%,
+            rgba(255, 255, 255, .3), transparent 55%),
+        linear-gradient(135deg,
+            rgb(var(--lyrics-c1, 139, 92, 246)),
+            rgb(var(--lyrics-c2, 236, 72, 153)));
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, .45),
+        0 8px 22px rgba(var(--lyrics-c1, 139, 92, 246), .4),
+        inset 0 1px 0 rgba(255, 255, 255, .3);
+    transition: transform .28s cubic-bezier(.16, 1, .3, 1), filter .2s ease;
+}
+
+.hero-new-play:hover {
+    transform: scale(1.08);
+    filter: brightness(1.08);
+}
+
+.hero-new-play.is-playing-state {
+    animation: nrPlayPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes nrPlayPulse {
+    0%, 100% {
+        box-shadow:
+            0 14px 32px rgba(0, 0, 0, .45),
+            0 8px 22px rgba(var(--lyrics-c1, 139, 92, 246), .4),
+            inset 0 1px 0 rgba(255, 255, 255, .3);
+    }
+    50% {
+        box-shadow:
+            0 14px 32px rgba(0, 0, 0, .45),
+            0 10px 30px rgba(var(--lyrics-c2, 236, 72, 153), .6),
+            0 0 34px rgba(var(--lyrics-c1, 139, 92, 246), .5),
+            inset 0 1px 0 rgba(255, 255, 255, .4);
+    }
+}
+
+/* Информация о релизе */
+.hero-new-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.hero-new-kicker {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .42);
+    margin-bottom: 8px;
+}
+
+.hero-new-title {
+    margin: 0 0 6px;
+    font-size: clamp(24px, 2.4vw, 34px);
+    font-weight: 850;
+    letter-spacing: -.035em;
+
+    /* ★ Увеличили line-height и добавили запас снизу — буквы больше не обрезаются */
+    line-height: 1.18;
+    padding-bottom: 3px;
+
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 4px 30px rgba(0, 0, 0, .4);
+}
+
+.hero-new-artist {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, .6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 18px;
+}
+
+.hero-new-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.hero-new-listen {
+    padding: 10px 22px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .2px;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: linear-gradient(135deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
+    box-shadow:
+        0 10px 24px rgba(var(--lyrics-c1, 139, 92, 246), .4),
+        inset 0 1px 0 rgba(255, 255, 255, .25);
+    transition: transform .22s cubic-bezier(.16, 1, .3, 1), filter .2s ease;
+}
+
+.hero-new-listen:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+}
+
+.hero-new-open {
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, .82);
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition:
+        color .2s ease,
+        background .2s ease,
+        border-color .2s ease,
+        transform .22s cubic-bezier(.16, 1, .3, 1);
+}
+
+.hero-new-open:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, .1);
+    border-color: rgba(255, 255, 255, .18);
+    transform: translateY(-2px);
+}
+
+/* Треклист */
+.hero-new-tracks {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.hero-new-track {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease;
+}
+
+.hero-new-track:hover {
+    background: linear-gradient(90deg,
+        rgba(var(--lyrics-c1, 139, 92, 246), .14),
+        rgba(255, 255, 255, .03));
+    transform: translateX(3px);
+}
+
+.hero-new-track-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, .32);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.hero-new-track-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hero-new-track-duration {
+    font-size: 11px;
+    color: rgba(255, 255, 255, .38);
+    font-variant-numeric: tabular-nums;
+}
+
+.hero-new-track-more {
+    padding: 8px 10px 4px 34px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    color: rgba(var(--lyrics-c1, 139, 92, 246), .9);
+    cursor: pointer;
+    transition: color .2s ease;
+}
+
+.hero-new-track-more:hover {
+    color: rgb(var(--lyrics-c1, 139, 92, 246));
+}
+
+/* Заглушка, когда новинок нет */
+.hero-new-release.is-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 440px;
+}
+
+.hero-new-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    max-width: 380px;
+}
+
+.hero-new-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    color: rgba(var(--lyrics-c1, 139, 92, 246), .9);
+    background:
+        radial-gradient(circle at 30% 25%,
+            rgba(var(--lyrics-c1, 139, 92, 246), .2), transparent 70%),
+        linear-gradient(145deg,
+            rgba(255, 255, 255, .06),
+            rgba(255, 255, 255, .015));
+    border: 1px solid rgba(var(--lyrics-c1, 139, 92, 246), .28);
+    box-shadow:
+        0 14px 34px rgba(0, 0, 0, .35),
+        0 0 30px rgba(var(--lyrics-c1, 139, 92, 246), .22),
+        inset 0 1px 0 rgba(255, 255, 255, .08);
+    animation: heroNewBadgeGlow 3.2s ease-in-out infinite;
+}
+
+.hero-new-empty-title {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    background: linear-gradient(90deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        #ffffff 50%,
+        rgb(var(--lyrics-c2, 236, 72, 153)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-new-empty-text {
+    font-size: 13px;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, .42);
+}
+
+/* ─────────────────────────────────
+   Правая колонка: стек блоков
+   ───────────────────────────────── */
+
+.hero-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.hero-aside-card {
+    position: relative;
+    isolation: isolate;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow:
+        0 20px 44px rgba(0, 0, 0, .4),
+        inset 0 1px 0 rgba(255, 255, 255, .04);
+    transition:
+        transform .35s cubic-bezier(.16, 1, .3, 1),
+        border-color .3s ease,
+        box-shadow .35s ease;
+    min-height: 0;
+}
+
+/* ─────────────────────────────────
+   Артист месяца — компактная версия
+   ───────────────────────────────── */
+
+.hero-artist-of-month {
+    position: relative;
+    isolation: isolate;
+    flex: 0 0 auto;
+    padding: 14px 16px;
+    cursor: pointer;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 0% 0%,
+            rgba(var(--lyrics-c1, 139, 92, 246), .18), transparent 55%),
+        linear-gradient(160deg,
+            rgba(28, 25, 40, .92) 0%,
+            rgba(14, 13, 20, .96) 100%);
+    border-radius: 18px;
+}
+
+.hero-artist-of-month:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--lyrics-c1, 139, 92, 246), .38);
+    box-shadow:
+        0 24px 52px rgba(0, 0, 0, .5),
+        0 0 34px rgba(var(--lyrics-c1, 139, 92, 246), .18);
+}
+
+/* Бейдж «Артист месяца» — компактный */
+.hero-artist-label {
+    display: inline-block;
+    padding: 3px 9px;
+    margin-bottom: 10px;
+    font-size: 8.5px;
+    font-weight: 850;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .78);
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 5px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .06),
+        0 3px 10px rgba(0, 0, 0, .2);
+}
+
+/* Фото + имя — компактнее */
+.hero-artist-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.hero-artist-photo {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow:
+        0 6px 16px rgba(0, 0, 0, .5),
+        0 0 0 2px rgba(var(--lyrics-c1, 139, 92, 246), .3),
+        0 0 16px rgba(var(--lyrics-c1, 139, 92, 246), .25);
+}
+
+.hero-artist-name {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* Описание — компактнее, со скроллом */
+.hero-artist-description {
+    font-size: 11px;
+    line-height: 1.42;
+    color: rgba(255, 255, 255, .58);
+    margin: 0 0 10px;
+
+    max-height: 62px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+
+    scrollbar-width: thin;
+    scrollbar-color: rgba(var(--lyrics-c1, 139, 92, 246), .55) transparent;
+    overscroll-behavior: contain;
+}
+
+.hero-artist-description::-webkit-scrollbar {
+    width: 4px;
+}
+
+.hero-artist-description::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, .04);
+    border-radius: 4px;
+}
+
+.hero-artist-description::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg,
+        rgba(var(--lyrics-c1, 139, 92, 246), .7),
+        rgba(var(--lyrics-c2, 236, 72, 153), .6));
+    border-radius: 4px;
+}
+
+.hero-artist-description::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
+}
+
+/* Карточка трека — компактная */
+.hero-artist-track {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 11px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .25s ease, border-color .25s ease;
+}
+
+.hero-artist-track:hover {
+    border-color: rgba(var(--lyrics-c1, 139, 92, 246), .35);
+}
+
+.hero-artist-bg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 55%;
+    height: 100%;
+    object-fit: cover;
+    opacity: .32;
+    mask-image: linear-gradient(90deg, transparent 0%, black 60%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 60%);
+    z-index: -1;
+    pointer-events: none;
+    transition: opacity .3s ease, transform .6s cubic-bezier(.16, 1, .3, 1);
+}
+
+.hero-artist-track:hover .hero-artist-bg {
+    opacity: .5;
+    transform: scale(1.05);
+}
+
+.hero-artist-track-play {
+    position: relative;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(135deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
+    box-shadow:
+        0 4px 10px rgba(var(--lyrics-c1, 139, 92, 246), .4),
+        inset 0 1px 0 rgba(255, 255, 255, .2);
+}
+
+.hero-artist-track-play-icon,
+.hero-artist-track-pause-icon {
+    display: block;
+    width: 12px;
+    height: 12px;
+}
+
+.hero-artist-track-text {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+    flex: 1;
+}
+
+.hero-artist-track-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, .55);
+}
+
+.hero-artist-track-artist {
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, .5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, .5);
+}
+
+/* ── Рекомендации ── */
+.hero-recommend {
+    flex: 1 1 auto;
+    min-height: 140px;
+    cursor: pointer;
+    background: linear-gradient(135deg,
+        rgba(var(--lyrics-c1, 139, 92, 246), .35),
+        rgba(var(--lyrics-c2, 236, 72, 153), .28));
+}
+
+.hero-recommend-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -1;
+    opacity: .65;
+    transition: transform .6s cubic-bezier(.16, 1, .3, 1), opacity .3s ease;
+}
+
+.hero-recommend:hover .hero-recommend-bg {
+    transform: scale(1.06);
+    opacity: .8;
+}
+
+.hero-recommend-play {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .22);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #fff;
+    background: rgba(15, 14, 22, .55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow:
+        0 10px 24px rgba(0, 0, 0, .35),
+        inset 0 1px 0 rgba(255, 255, 255, .12);
+    transition: transform .22s cubic-bezier(.16, 1, .3, 1), background .22s ease;
+}
+
+.hero-recommend-play:hover {
+    transform: scale(1.08);
+    background: linear-gradient(135deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
+}
+
+.hero-recommend-body {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    z-index: 2;
+}
+
+.hero-recommend-label {
+    font-size: 9.5px;
+    font-weight: 850;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .65);
+    margin-bottom: 4px;
+}
+
+.hero-recommend-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: #fff;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, .5);
+}
+
+.hero-recommend:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--lyrics-c1, 139, 92, 246), .4);
+    box-shadow:
+        0 24px 52px rgba(0, 0, 0, .5),
+        0 0 40px rgba(var(--lyrics-c1, 139, 92, 246), .22);
+}
+
+/* ── Топ-50 ── */
+.hero-chart {
+    flex: 0 0 auto;
+    min-height: 96px;
+    text-decoration: none;
+    color: inherit;
+    background:
+        radial-gradient(circle at 100% 0%,
+            rgba(var(--lyrics-c2, 236, 72, 153), .22), transparent 60%),
+        linear-gradient(160deg,
+            rgba(28, 25, 40, .92) 0%,
+            rgba(14, 13, 20, .96) 100%);
+}
+
+.hero-chart:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--lyrics-c2, 236, 72, 153), .4);
+    box-shadow:
+        0 24px 52px rgba(0, 0, 0, .5),
+        0 0 40px rgba(var(--lyrics-c2, 236, 72, 153), .22);
+}
+
+.hero-chart-bg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100%;
+    object-fit: cover;
+    opacity: .35;
+    mask-image: linear-gradient(90deg, transparent 0%, black 60%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 60%);
+    z-index: -1;
+    transition: opacity .3s ease;
+}
+
+.hero-chart:hover .hero-chart-bg {
+    opacity: .55;
+}
+
+.hero-chart-body {
+    position: relative;
+    z-index: 2;
+    padding: 18px 20px;
+}
+
+.hero-chart-label {
+    display: inline-block;
+    padding: 3px 9px;
+    margin-bottom: 8px;
+    font-size: 8.5px;
+    font-weight: 850;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, .78);
+
+    /* ★ Нейтральный бейдж */
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 5px;
+}
+
+.hero-chart-title {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: #fff;
+    margin-bottom: 3px;
+}
+
+.hero-chart-meta {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, .45);
+}
+
+/* ─────────────────────────────────
+   Мобильная адаптация
+   ───────────────────────────────── */
+
+@media (max-width: 900px) {
+    .hero-new-release {
+        padding: 22px 22px 20px;
+        border-radius: 20px;
+        min-height: 0;
+    }
+
+    .hero-new-badge {
+        margin-bottom: 16px;
+    }
+
+    .hero-new-title {
+        font-size: 22px;
+    }
+
+    .hero-artist-photo {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (max-width: 700px) {
+    .hero-new-release {
+        padding: 18px 16px 16px;
+    }
+
+    .hero-new-title {
+        font-size: 20px;
+    }
+
+    .hero-new-cover-wrap {
+        border-radius: 14px;
+    }
+
+    .hero-new-play {
+        width: 46px;
+        height: 46px;
+    }
+
+    .hero-new-actions {
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .hero-new-listen,
+    .hero-new-open {
+        flex: 1;
+        padding: 9px 14px;
+        font-size: 12px;
+    }
+
+    .hero-new-track {
+        padding: 7px 8px;
+    }
+
+    .hero-new-track-title {
+        font-size: 12px;
+    }
+
+    .hero-aside-card {
+        border-radius: 16px;
+    }
+
+    .hero-artist-of-month {
+        padding: 16px;
+    }
+
+    .hero-recommend {
+        min-height: 120px;
+    }
+
+    .hero-chart-body {
+        padding: 15px 16px;
+    }
+
+    .hero-chart-bg {
+        width: 80px;
+    }
+
+    .hero-chart-title {
+        font-size: 14px;
+    }
+}
+
+/* ===========================================
+   Копирайты под обложкой релиза — мелкий текст
+   =========================================== */
+
+.hero-new-copyright {
+    font-size: 10px;
+    line-height: 1.4;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+
+    /* ★ Светлее и заметнее */
+    color: rgba(255, 255, 255, .55);
+
+    text-align: center;
+
+    /* ★ Отступы сверху/снизу и по бокам */
+    padding: 6px 8px 4px;
+
+    max-height: 32px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+
+    transition: color .25s ease;
+}
+
+.hero-new-copyright:hover {
+    color: rgba(255, 255, 255, .8);
+}
+
+@media (max-width: 700px) {
+    .hero-new-copyright {
+        font-size: 9px;
+        max-height: 24px;
+    }
+}
+
+/* ===========================================================
+   Свежие релизы — карусель внутри hero-new-release
+   =========================================================== */
+
+.hero-new-carousel {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.hero-new-carousel-track {
+    display: flex;
+    width: 100%;
+    transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+.hero-new-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* ── Точки ── */
+.hero-new-dots {
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    margin-top: 18px;
+    padding: 0 4px;
+    flex-wrap: wrap;
+}
+
+.hero-new-dot {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.20);
+    cursor: pointer;
+    transition:
+        width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+        background 0.3s ease,
+        border-color 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+.hero-new-dot:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.hero-new-dot.is-active {
+    width: 24px;
+    border-color: transparent;
+    background: linear-gradient(90deg,
+        rgb(var(--lyrics-c1, 139, 92, 246)),
+        rgb(var(--lyrics-c2, 236, 72, 153)));
+    box-shadow:
+        0 0 16px rgba(var(--lyrics-c1, 139, 92, 246), 0.4),
+        0 0 24px rgba(var(--lyrics-c2, 236, 72, 153), 0.25);
 }

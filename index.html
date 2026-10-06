@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="css/sidebar.css">
     <link rel="stylesheet" href="css/reviews.css">
+    <link rel="stylesheet" href="css/visualizer.css">
     <!-- Динамический base -->
     <script>
         (function() {
@@ -54,13 +55,13 @@
                 <span class="app-sidebar-link-text">Главная</span>
             </a>
 
-<!--            <a href="/reviews" class="app-sidebar-link" data-nav="reviews" title="Рецензии">
+            <a href="/reviews" class="app-sidebar-link" data-nav="reviews" title="Рецензии">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2.5 15 9l7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
                 </svg>
                 <span class="app-sidebar-link-text">Рецензии</span>
             </a>
--->
+
             <a href="/favorites" class="app-sidebar-link" data-nav="favorites" title="Избранное">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -109,38 +110,38 @@
     <main>
         <div id="main-content">
 
-            <!-- Карусель баннеров -->
-            <div id="hero-carousel" class="hero-carousel">
-                <div class="carousel-track" id="carousel-track">
-                    <!-- Слайд 1: Новинки -->
-                    <div class="carousel-slide">
-                        <div id="new-releases-block" class="new-releases-block"></div>
-                    </div>
+            <!-- Split-hero: свежий релиз + боковые блоки -->
+            <section class="hero-split">
+                <!-- Левая колонка: свежий релиз с треклистом -->
+                <div id="hero-new-release" class="hero-new-release"></div>
 
-                    <!-- Слайд 2: Исполнитель года -->
-                    <div class="carousel-slide">
-                        <div id="artist-of-year" class="artist-of-year"></div>
-                    </div>
+                <!-- Правая колонка: стек блоков -->
+                <aside class="hero-aside">
+                    <div id="artist-of-year" class="hero-aside-card hero-artist-of-month"></div>
 
-                    <!-- Слайд 3: Баннер рекомендаций -->
-                    <div class="carousel-slide">
-                        <div id="recommendation-banner" class="recommendation-banner">
-                            <img src="photo/banner.png" alt="Рекомендации" class="banner-img" onerror="this.style.display='none'">
-                            <button id="recommend-play-btn" class="recommend-play-btn">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                                    <polygon points="6,3 20,12 6,21"/>
-                                </svg>
-                            </button>
+                    <div id="recommendation-banner" class="hero-aside-card hero-recommend">
+                        <img src="photo/banner.png" alt="" class="hero-recommend-bg" onerror="this.style.display='none'">
+                        <button id="recommend-play-btn" class="hero-recommend-play" title="Играть">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="6,3 20,12 6,21"/>
+                            </svg>
+                        </button>
+                        <div class="hero-recommend-body">
+                            <div class="hero-recommend-label">Рекомендации</div>
+                            <div class="hero-recommend-title">Слушать поток</div>
                         </div>
                     </div>
-                </div>
 
-                <div class="carousel-dots" id="carousel-dots">
-                    <span class="dot active" data-index="0"></span>
-                    <span class="dot" data-index="1"></span>
-                    <span class="dot" data-index="2"></span>
-                </div>
-            </div>
+                    <a href="/chart" class="hero-aside-card hero-chart" id="hero-chart">
+                        <img src="photo/chart.png" alt="" class="hero-chart-bg" onerror="this.style.display='none'">
+                        <div class="hero-chart-body">
+                            <div class="hero-chart-label">Чарт</div>
+                            <div class="hero-chart-title">Fartify топ-50</div>
+                            <div class="hero-chart-meta" id="hero-chart-meta">Топ треки</div>
+                        </div>
+                    </a>
+                </aside>
+            </section>
 
             <!-- Плейлисты -->
             <section id="playlists-section" class="section scrollable-section">
@@ -377,6 +378,11 @@
                         <input type="range" id="volume-bar" class="volume-bar" min="0" max="100" value="70" step="1">
                     </div>
                 </div>
+                <button id="visualizer-open-btn" class="control-btn visualizer-open-btn" title="Визуализатор">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12h3l2-6 4 12 2-8 2 4h5"/>
+                    </svg>
+                </button>
             </div>
             <audio id="audio"></audio>
         </div>
@@ -722,6 +728,119 @@
         </div>
     </div>
 
+    <!-- =========================================================
+         FULLSCREEN AUDIO VISUALIZER
+         ========================================================= -->
+    <div id="audio-visualizer" class="audio-visualizer" aria-hidden="true">
+
+        <canvas id="visualizer-canvas" class="visualizer-canvas"></canvas>
+
+        <div class="visualizer-vignette"></div>
+        <div class="visualizer-ambient"></div>
+
+        <div class="visualizer-topbar">
+            <div class="visualizer-brand">
+                <span class="visualizer-brand-dot"></span>
+                <span>FARTIFY</span>
+                <span class="visualizer-brand-sub">VISUALIZER</span>
+            </div>
+
+            <div class="visualizer-top-actions">
+                <button id="visualizer-fullscreen" class="visualizer-icon-btn" type="button" title="Полноэкранный режим" aria-label="Полноэкранный режим">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M8 3H3v5"/>
+                        <path d="M3 3l6 6"/>
+                        <path d="M16 3h5v5"/>
+                        <path d="M21 3l-6 6"/>
+                        <path d="M8 21H3v-5"/>
+                        <path d="M3 21l6-6"/>
+                        <path d="M16 21h5v-5"/>
+                        <path d="M21 21l-6-6"/>
+                    </svg>
+                </button>
+                <button id="visualizer-close" class="visualizer-icon-btn visualizer-close-btn" type="button" title="Закрыть" aria-label="Закрыть визуализатор">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                        <path d="M6 6l12 12"/>
+                        <path d="M18 6L6 18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="visualizer-stage">
+            <div class="visualizer-ring visualizer-ring-outer"></div>
+            <div class="visualizer-ring visualizer-ring-inner"></div>
+
+            <div class="visualizer-cover-wrap">
+                <div class="visualizer-cover-glow"></div>
+                <div class="visualizer-cover-frame">
+                    <img id="visualizer-cover" class="visualizer-cover" src="photo/placeholder.jpg" alt="">
+                </div>
+            </div>
+
+            <div class="visualizer-orbit orbit-one"><span></span></div>
+            <div class="visualizer-orbit orbit-two"><span></span></div>
+        </div>
+
+        <div id="viz-lyrics" class="viz-lyrics hidden" aria-live="polite">
+            <div class="viz-lyric-line viz-lyric-prev" id="viz-lyric-prev"></div>
+            <div class="viz-lyric-line viz-lyric-current" id="viz-lyric-current"></div>
+            <div class="viz-lyric-line viz-lyric-next" id="viz-lyric-next"></div>
+        </div>
+
+        <div class="visualizer-track-info">
+            <div class="visualizer-track-kicker">
+                <span class="visualizer-live-dot"></span>
+                <span>NOW PLAYING</span>
+            </div>
+            <h1 id="visualizer-title" class="visualizer-title">Название трека</h1>
+            <button id="visualizer-artist" class="visualizer-artist" type="button">Исполнитель</button>
+            <div id="visualizer-album" class="visualizer-album">Альбом</div>
+        </div>
+
+        <div class="visualizer-bottom">
+            <div class="visualizer-progress">
+                <span id="visualizer-current-time">0:00</span>
+                <div id="visualizer-progress-bar" class="visualizer-progress-bar" role="slider" aria-label="Позиция трека" tabindex="0">
+                    <div class="visualizer-progress-track"></div>
+                    <div id="visualizer-progress-fill" class="visualizer-progress-fill"></div>
+                    <div id="visualizer-progress-thumb" class="visualizer-progress-thumb"></div>
+                </div>
+                <span id="visualizer-duration">0:00</span>
+            </div>
+
+            <div class="visualizer-controls">
+                <button id="visualizer-prev" class="visualizer-control-btn" type="button" title="Предыдущий">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="2" y="4" width="4" height="16" rx="1"/>
+                        <polygon points="10,4 22,12 10,20"/>
+                    </svg>
+                </button>
+                <button id="visualizer-play" class="visualizer-play-btn" type="button" title="Пауза">
+                    <svg id="visualizer-play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="6,3 21,12 6,21"/>
+                    </svg>
+                    <svg id="visualizer-pause-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+                        <rect x="5" y="4" width="5" height="16" rx="1"/>
+                        <rect x="14" y="4" width="5" height="16" rx="1"/>
+                    </svg>
+                </button>
+                <button id="visualizer-next" class="visualizer-control-btn" type="button" title="Следующий">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="2,4 14,12 2,20"/>
+                        <rect x="18" y="4" width="4" height="16" rx="1"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="visualizer-hint">
+                <span>ESC</span>
+                <span>закрыть</span>
+            </div>
+        </div>
+
+    </div>
+
     <!-- SVG-фильтр для жидкого эффекта фона текста -->
     <svg style="position: absolute; width: 0; height: 0;">
         <filter id="liquidFilter" x="-50%" y="-50%" width="9900%" height="9900%">
@@ -753,6 +872,7 @@
     <script src="js/sidebar.js"></script>
     <script src="js/reviews.js"></script>
     <script src="js/equalizer.js"></script>
+    <script src="js/visualizer.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

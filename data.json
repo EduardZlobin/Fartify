@@ -993,5 +993,44 @@
                 "plays": "87 436"
             }
         ]
+    },
+    {
+        "title": "Хроники ДЕБИЛОВ",
+        "artist": "RadioGladoon",
+        "cover": "43.png",
+        "date": "2026-10-15",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Chevrolet Tractor",
+                "file": "125.mp3",
+                "duration": "2:12",
+                "plays": "89 335"
+            },
+            {
+                "title": "200 в час",
+                "file": "127.mp3",
+                "duration": "2:53",
+                "plays": "80 931"
+            },
+            {
+                "title": "нИГИЛист",
+                "file": "130.mp3",
+                "duration": "2:56",
+                "plays": "82 313"
+            },
+            {
+                "title": "Омайгад",
+                "file": "126.mp3",
+                "duration": "3:19",
+                "plays": "75 431"
+            },
+            {
+                "title": "Дабстеп молитва",
+                "file": "129.mp3",
+                "duration": "2:07",
+                "plays": "67 433"
+            }
+        ]
     }
 ]

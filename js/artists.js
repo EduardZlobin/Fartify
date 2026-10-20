@@ -60,7 +60,7 @@ function buildArtistAlbumCard(album) {
             <span class="badge-new">Новое</span>
             <span class="badge-type">${type}</span>
         </span>
-        <img src="photo/${escapeHtml(album.cover)}" alt="${escapeHtml(album.title)}" onerror="this.src='photo/placeholder.jpg'">
+        <img src="${resolveCoverUrl(album.cover)}" alt="${escapeHtml(album.title)}" onerror="this.src='photo/placeholder.jpg'">
         <div class="title">${escapeHtml(album.title)}</div>
         <div class="artist">${escapeHtml(album.artist)}</div>
         <div class="date">${escapeHtml(album.date || '')}</div>

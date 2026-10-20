@@ -67,7 +67,10 @@ function formatReleaseDate(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (isNaN(d)) return dateStr;
-    const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    const months = [
+        'Января','Февраля','Марта','Апреля','Мая','Июня',
+        'Июля','Августа','Сентября','Октября','Ноября','Декабря'
+    ];
     return `${d.getDate()} ${months[d.getMonth()]}`;
 }
 
@@ -114,4 +117,15 @@ function safeFileName(str, fallback = 'file') {
         .slice(0, 60)
         .trim();
     return cleaned || fallback;
+}
+
+// ★ Универсальная функция для путей обложек
+function resolveCoverUrl(path) {
+    if (!path) return 'photo/placeholder.jpg';
+    // Если путь начинается с http, возвращаем как есть (ссылка из БД)
+    if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('/')) {
+        return path;
+    }
+    // Иначе это локальный файл
+    return `photo/${path}`;
 }

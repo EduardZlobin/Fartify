@@ -195,8 +195,7 @@ function buildHeroNewSlideHTML(album) {
             <div class="hero-new-grid">
                 <div class="hero-new-cover-col">
                     <div class="hero-new-cover-wrap">
-                        <img src="photo/${escapeHtml(album.cover)}" alt="${escapeHtml(album.title)}"
-                             onerror="this.src='photo/placeholder.jpg'">
+                        <img src="${resolveCoverUrl(album.cover)}" alt="${escapeHtml(album.title)}" onerror="this.src='photo/placeholder.jpg'">
                         <button class="hero-new-play" title="Слушать" aria-label="Слушать"
                                 data-album-title="${escapeHtml(album.title)}"
                                 data-album-artist="${escapeHtml(album.artist)}">

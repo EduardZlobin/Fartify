@@ -75,7 +75,7 @@ function renderAlbums(albums) {
                 <span class="badge-new">Новое</span>
                 <span class="badge-type">${type}</span>
             </span>
-            <img src="photo/${album.cover}" alt="${album.title}" onerror="this.src='photo/placeholder.jpg'">
+            <img src="${resolveCoverUrl(album.cover)}" alt="${album.title}" onerror="this.src='photo/placeholder.jpg'">
             <button class="album-play-btn" title="Играть">${getPlaySvg(20)}</button>
             <div class="title">${album.title}</div>
             <div class="artist">${album.artist}</div>
@@ -98,7 +98,7 @@ function openModal(album, type) {
     safePushState(releasePath);
     openedModalAlbum = album;
 
-    modalCover.src = `photo/${album.cover}`;
+    modalCover.src = resolveCoverUrl(album.cover);
     modalCover.onerror = () => { modalCover.src = 'photo/placeholder.jpg'; };
     modalTitle.textContent = album.title;
     modalTypeLabel.textContent = type;

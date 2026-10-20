@@ -88,6 +88,11 @@ function updateAuthUI() {
 }
 
 async function initAuth() {
+    // ★ Очистка URL от токенов после редиректа
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    
     console.log("Запуск initAuth...");
     try {
         const { data: { session } } = await window.supabaseClient.auth.getSession();

@@ -37,7 +37,7 @@
 <body>
     <!-- Фоновые слои -->
     <div id="bg-layer1" class="bg-layer"></div>
-    <div id="bg-layer2" class="bg-layer" style="opacity: 0;"></div>
+    <div id="bg-layer2" class="bg-layer"></div>
 
     <!-- Левая панель навигации -->
     <aside id="app-sidebar" class="app-sidebar" aria-label="Основная навигация">
@@ -105,6 +105,9 @@
             </div>
             <div id="search-results" class="search-results hidden"></div>
         </div>
+
+        <!-- Контейнер для профиля / кнопки входа -->
+        <div id="auth-container" class="auth-container"></div>
     </header>
 
     <main>
@@ -143,10 +146,10 @@
                 </aside>
             </section>
 
-            <!-- Плейлисты -->
-            <section id="playlists-section" class="section scrollable-section">
-                <h2 class="section-title">Плейлисты</h2>
-                <div id="playlists-grid" class="playlists-grid horizontal-grid"></div>
+            <!-- Недавно прослушано -->
+            <section id="recent-section" class="section scrollable-section" style="display: none;">
+                <h2 class="section-title">Недавно прослушано</h2>
+                <div id="recent-grid" class="albums-grid horizontal-grid"></div>
             </section>
 
             <!-- Исполнители -->
@@ -155,15 +158,122 @@
                 <div id="artists-grid" class="artists-grid horizontal-grid"></div>
             </section>
 
-            <!-- Недавно прослушано -->
-            <section id="recent-section" class="section scrollable-section" style="display: none;">
-                <h2 class="section-title">Недавно прослушано</h2>
-                <div id="recent-grid" class="albums-grid horizontal-grid"></div>
+            <!-- Плейлисты -->
+            <section id="playlists-section" class="section scrollable-section">
+                <h2 class="section-title">Плейлисты</h2>
+                <div id="playlists-grid" class="playlists-grid horizontal-grid"></div>
             </section>
 
             <!-- Для вас -->
             <section id="for-you-section" class="section">
-                <h2 class="section-title">Для вас</h2>
+                <h2 class="section-title for-you-title">
+                    <span class="for-you-title-text">Для вас</span>
+
+                    <div class="for-you-sort" id="for-you-sort">
+                        <button type="button" class="for-you-sort-trigger" aria-haspopup="listbox" aria-expanded="false">
+                            <span class="for-you-sort-icon" data-current-icon></span>
+                            <span class="for-you-sort-label" data-current-label>Случайно</span>
+                            <svg class="for-you-sort-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+
+                        <div class="for-you-sort-menu" role="listbox" aria-label="Сортировка релизов">
+                            <button type="button" class="for-you-sort-option is-active" data-value="random" role="option">
+                                <span class="for-you-sort-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="16 3 21 3 21 8"/>
+                                        <line x1="4" y1="20" x2="21" y2="3"/>
+                                        <polyline points="21 16 21 21 16 21"/>
+                                        <line x1="15" y1="15" x2="21" y2="21"/>
+                                        <line x1="4" y1="4" x2="9" y2="9"/>
+                                    </svg>
+                                </span>
+                                <span class="for-you-sort-option-text">
+                                    <span class="for-you-sort-option-title">Случайно</span>
+                                    <span class="for-you-sort-option-desc">Перемешать релизы каждый раз</span>
+                                </span>
+                                <svg class="for-you-sort-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </button>
+
+                            <button type="button" class="for-you-sort-option" data-value="alpha" role="option">
+                                <span class="for-you-sort-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M4 19 9 5l5 14"/>
+                                        <line x1="5.5" y1="15" x2="12.5" y2="15"/>
+                                        <line x1="17" y1="7" x2="17" y2="19"/>
+                                        <line x1="14" y1="7" x2="20" y2="7"/>
+                                    </svg>
+                                </span>
+                                <span class="for-you-sort-option-text">
+                                    <span class="for-you-sort-option-title">По алфавиту</span>
+                                    <span class="for-you-sort-option-desc">От «А» до «Я»</span>
+                                </span>
+                                <svg class="for-you-sort-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </button>
+
+                            <button type="button" class="for-you-sort-option" data-value="newest" role="option">
+                                <span class="for-you-sort-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9"/>
+                                        <polyline points="3 9 8 4 13 9"/>
+                                        <line x1="8" y1="4" x2="8" y2="12"/>
+                                        <polyline points="11 15 16 10 21 15"/>
+                                        <line x1="16" y1="10" x2="16" y2="18"/>
+                                    </svg>
+                                </span>
+                                <span class="for-you-sort-option-text">
+                                    <span class="for-you-sort-option-title">Сначала новое</span>
+                                    <span class="for-you-sort-option-desc">Свежие релизы сверху</span>
+                                </span>
+                                <svg class="for-you-sort-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </button>
+
+                            <button type="button" class="for-you-sort-option" data-value="oldest" role="option">
+                                <span class="for-you-sort-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9"/>
+                                        <polyline points="3 15 8 20 13 15"/>
+                                        <line x1="8" y1="20" x2="8" y2="12"/>
+                                        <polyline points="11 9 16 14 21 9"/>
+                                        <line x1="16" y1="14" x2="16" y2="6"/>
+                                    </svg>
+                                </span>
+                                <span class="for-you-sort-option-text">
+                                    <span class="for-you-sort-option-title">Сначала старое</span>
+                                    <span class="for-you-sort-option-desc">Ранние релизы вперёд</span>
+                                </span>
+                                <svg class="for-you-sort-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </button>
+
+                            <button type="button" class="for-you-sort-option" data-value="popular" role="option">
+                                <span class="for-you-sort-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="4" y1="20" x2="4" y2="12"/>
+                                        <line x1="10" y1="20" x2="10" y2="6"/>
+                                        <line x1="16" y1="20" x2="16" y2="14"/>
+                                        <line x1="22" y1="20" x2="22" y2="9"/>
+                                    </svg>
+                                </span>
+                                <span class="for-you-sort-option-text">
+                                    <span class="for-you-sort-option-title">Сначала популярные</span>
+                                    <span class="for-you-sort-option-desc">Больше прослушиваний — выше</span>
+                                </span>
+                                <svg class="for-you-sort-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </h2>
                 <div id="albums-grid" class="albums-grid"></div>
             </section>
 
@@ -433,6 +543,56 @@
                     Сбросить
                 </button>
                 <span class="eq-hint">−40 dB … +40 dB</span>
+            </div>
+        </div>
+
+        <!-- Модалка личного кабинета артиста -->
+        <div id="dashboard-modal" class="modal hidden">
+            <div class="modal-content" style="max-width: 700px;">
+                <span class="close" onclick="document.getElementById('dashboard-modal').classList.add('hidden')">&times;</span>
+                <h2 style="margin-bottom: 20px; font-weight: 800; font-size: 24px;">Загрузка релиза</h2>
+                
+                <form id="upload-release-form" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="font-size: 12px; color: #888; margin-bottom: 5px; display: block;">Название релиза</label>
+                            <input type="text" id="rel-title" required class="dash-input" placeholder="Например: Мой новый альбом">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: #888; margin-bottom: 5px; display: block;">Имя артиста</label>
+                            <input type="text" id="rel-artist" required class="dash-input" placeholder="Ваш псевдоним">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="font-size: 12px; color: #888; margin-bottom: 5px; display: block;">Дата выхода</label>
+                            <input type="date" id="rel-date" required class="dash-input">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: #888; margin-bottom: 5px; display: block;">Лейбл (необязательно)</label>
+                            <input type="text" id="rel-label" class="dash-input" placeholder="Fartify Records">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 12px; color: #888; margin-bottom: 5px; display: block;">Обложка (JPG/PNG)</label>
+                        <input type="file" id="rel-cover" accept="image/*" required class="dash-file">
+                    </div>
+
+                    <div style="border-top: 1px solid #333; margin: 10px 0;"></div>
+                    <h3 style="font-size: 16px; font-weight: 700;">Треки</h3>
+                    
+                    <div id="tracks-container" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Сюда будут добавляться поля для треков -->
+                    </div>
+                    
+                    <button type="button" id="add-track-btn" class="share-action-btn" style="align-self: flex-start;">+ Добавить трек</button>
+
+                    <div style="margin-top: 20px;">
+                        <button type="submit" class="share-action-btn primary" style="width: 100%;">Опубликовать релиз</button>
+                    </div>
+                </form>
             </div>
         </div>
     </main>
@@ -728,9 +888,7 @@
         </div>
     </div>
 
-    <!-- =========================================================
-         FULLSCREEN AUDIO VISUALIZER
-         ========================================================= -->
+    <!-- FULLSCREEN AUDIO VISUALIZER -->
     <div id="audio-visualizer" class="audio-visualizer" aria-hidden="true">
 
         <canvas id="visualizer-canvas" class="visualizer-canvas"></canvas>
@@ -853,7 +1011,17 @@
         </filter>
     </svg>
 
-    <!-- Модули JS — порядок важен, менять нельзя -->
+    <!-- ========================================== -->
+    <!-- ПОДКЛЮЧЕНИЕ СКРИПТОВ                       -->
+    <!-- ========================================== -->
+    
+    <!-- 1. Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Наш клиент Supabase (инициализация) -->
+    <script src="js/supabase.js"></script>
+
+    <!-- 3. Базовые модули -->
     <script src="js/state.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/router.js"></script>
@@ -873,6 +1041,12 @@
     <script src="js/reviews.js"></script>
     <script src="js/equalizer.js"></script>
     <script src="js/visualizer.js"></script>
+    
+    <!-- 4. Модули авторизации и кабинета -->
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+
+    <!-- 5. Точка входа (должна быть последней) -->
     <script src="js/main.js"></script>
 </body>
 </html>

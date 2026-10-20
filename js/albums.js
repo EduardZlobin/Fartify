@@ -79,7 +79,7 @@ function renderAlbums(albums) {
             <button class="album-play-btn" title="Играть">${getPlaySvg(20)}</button>
             <div class="title">${album.title}</div>
             <div class="artist">${album.artist}</div>
-            <div class="date">${album.date || ''}</div>
+            <div class="date">${formatReleaseDate(album.date)}</div>
         `;
         card.querySelector('.album-play-btn').addEventListener('click', (e) => {
             e.preventDefault();
@@ -105,7 +105,7 @@ function openModal(album, type) {
 
     const trackCount = album.tracks.length;
     const totalDuration = getTotalDuration(album.tracks);
-    const date = album.date || '';
+    const date = formatReleaseDate(album.date);
     const artist = album.artist;
 
         modalMeta.innerHTML = `
@@ -193,6 +193,7 @@ function openModal(album, type) {
             });
         });
         row.addEventListener('click', (e) => {
+            if (e.target.closest('.artist-inline-link')) return;
             e.stopPropagation();
             const isSame = currentAlbum
                 && !currentAlbum.isPlaylist
@@ -245,4 +246,127 @@ function setupAlbumsEvents() {
     window.addEventListener('click', (e) => {
         if (e.target === modal) closeAlbumAndRestoreUrl();
     });
+}
+
+// ============================================================
+// СОРТИРОВКА «ДЛЯ ВАС»
+// ============================================================
+
+let currentForYouSort = 'random';
+
+// Сумма прослушиваний всех треков альбома
+function getAlbumPlays(album) {
+    if (!album || !Array.isArray(album.tracks)) return 0;
+    return album.tracks.reduce((sum, t) => {
+        const n = parseInt(String(t.plays || '').replace(/\s/g, '')) || 0;
+        return sum + n;
+    }, 0);
+}
+
+// Универсальная сортировка массива альбомов
+function sortAlbums(albums, mode) {
+    const arr = [...albums];
+    const ts = d => {
+        if (!d) return 0;
+        const t = new Date(d).getTime();
+        return isFinite(t) ? t : 0;
+    };
+
+    switch (mode) {
+        case 'alpha':
+            return arr.sort((a, b) =>
+                String(a.title || '').localeCompare(String(b.title || ''), 'ru', { sensitivity: 'base' })
+            );
+        case 'newest':
+            return arr.sort((a, b) => ts(b.date) - ts(a.date));
+        case 'oldest':
+            return arr.sort((a, b) => ts(a.date) - ts(b.date));
+        case 'popular':
+            return arr.sort((a, b) => getAlbumPlays(b) - getAlbumPlays(a));
+        case 'random':
+        default:
+            return arr.sort(() => Math.random() - 0.5);
+    }
+}
+
+// Переприменить сортировку и перерендерить грид
+function applyForYouSort(mode) {
+    currentForYouSort = mode || 'random';
+    renderAlbums(sortAlbums(allAlbums, currentForYouSort));
+}
+
+// Инициализация кастомного дропдауна сортировки
+function setupForYouSort() {
+    const root = document.getElementById('for-you-sort');
+    if (!root) return;
+
+    const trigger = root.querySelector('.for-you-sort-trigger');
+    const triggerLabel = root.querySelector('[data-current-label]');
+    const triggerIcon = root.querySelector('[data-current-icon]');
+    const options = root.querySelectorAll('.for-you-sort-option');
+
+    // ── Открытие/закрытие ──
+    function openMenu() {
+        root.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+    }
+    function closeMenu() {
+        root.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+    function toggleMenu() {
+        if (root.classList.contains('is-open')) closeMenu();
+        else openMenu();
+    }
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+    });
+
+    // Клик вне — закрыть
+    document.addEventListener('click', (e) => {
+        if (!root.contains(e.target)) closeMenu();
+    });
+
+    // Esc — закрыть
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && root.classList.contains('is-open')) {
+            closeMenu();
+            trigger.focus();
+        }
+    });
+
+    // ── Выбор опции ──
+    options.forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const value = opt.dataset.value;
+            const title = opt.querySelector('.for-you-sort-option-title')?.textContent || '';
+            const iconHTML = opt.querySelector('.for-you-sort-icon')?.innerHTML || '';
+
+            // Обновляем состояние опций
+            options.forEach(o => o.classList.toggle('is-active', o === opt));
+
+            // Обновляем триггер
+            if (triggerLabel) triggerLabel.textContent = title;
+            if (triggerIcon)  triggerIcon.innerHTML = iconHTML;
+
+            // Применяем сортировку
+            applyForYouSort(value);
+
+            closeMenu();
+        });
+    });
+
+    // Устанавливаем текущее значение в UI (на случай сохранённого состояния)
+    const current = root.querySelector(`.for-you-sort-option[data-value="${currentForYouSort}"]`)
+                 || root.querySelector('.for-you-sort-option[data-value="random"]');
+    if (current) {
+        options.forEach(o => o.classList.toggle('is-active', o === current));
+        if (triggerLabel) triggerLabel.textContent =
+            current.querySelector('.for-you-sort-option-title')?.textContent || 'Случайно';
+        if (triggerIcon) triggerIcon.innerHTML =
+            current.querySelector('.for-you-sort-icon')?.innerHTML || '';
+    }
 }

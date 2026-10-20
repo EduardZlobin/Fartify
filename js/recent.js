@@ -65,7 +65,7 @@ function renderRecent() {
             <button class="album-play-btn" title="Играть">${getPlaySvg(20)}</button>
             <div class="title">${item.title}</div>
             <div class="artist">${item.artist}</div>
-            <div class="date">${item.date || ''}</div>
+            <div class="date">${formatReleaseDate(item.date)}</div>
         `;
         const playBtn = card.querySelector('.album-play-btn');
         playBtn.addEventListener('click', (e) => {

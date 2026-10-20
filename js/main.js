@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Найти все DOM-элементы
     initDom();
 
+    // 1.1 Инициализация авторизации
+    initAuth();
+
     // 1.5 Левая панель навигации
     initSidebar();
 
@@ -24,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 5. Эквалайзер
     initEqualizer();
-        // 5.5 Полноэкранный визуализатор
+    // 5.5 Полноэкранный визуализатор
     initVisualizer();
 
     // 6. Обработчики плеера
@@ -64,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
 
     // 11. Загружаем данные и запускаем сайт
-        Promise.all([
+    Promise.all([
         fetch('data.json').then(r => r.json()),
         fetch('artists.json').then(r => r.json()).catch(() => []),
         fetch('text.json').then(r => r.json()).catch(() => []),
@@ -76,8 +79,40 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('custom-playlists.json').then(r => r.json()).catch(() => []),
         fetch('feats.json').then(r => r.json()).catch(() => ({}))
     ])
-    .then(([albumsData, artistsData, textData, trackCoverData, critics, aoyData, liveData, releaseInfoData, customPlaylistsData, featsDataRaw]) => {
-        allAlbums = albumsData;
+    .then(async ([albumsData, artistsData, textData, trackCoverData, critics, aoyData, liveData, releaseInfoData, customPlaylistsData, featsDataRaw]) => {
+        
+        let baseAlbums = albumsData;
+
+        // ★ Подгружаем релизы из Supabase
+        try {
+            const { data: dbReleases, error } = await window.supabaseClient
+                .from('releases')
+                .select('*, tracks(*)')
+                .order('created_at', { ascending: false });
+            
+            if (!error && dbReleases) {
+                const formattedDbAlbums = dbReleases.map(rel => ({
+                    title: rel.title,
+                    artist: rel.artist,
+                    cover: rel.cover_url,
+                    date: rel.release_date,
+                    label: rel.label,
+                    tracks: rel.tracks.map(t => ({
+                        file: t.file_url,
+                        title: t.title,
+                        duration: t.duration,
+                        plays: "0"
+                    }))
+                }));
+                
+                // Объединяем локальные и новые релизы (новые идут первыми)
+                baseAlbums = [...formattedDbAlbums, ...albumsData];
+            }
+        } catch (e) {
+            console.warn("Не удалось загрузить релизы из БД:", e);
+        }
+
+        allAlbums = baseAlbums;
 
         artistsMap = {};
         artistsData.forEach(a => { artistsMap[a.name] = a; });
@@ -95,11 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
         buildCustomPlaylists(customPlaylistsData);
 
         // Рендер секций
-        buildUniqueArtists(albumsData);
+        buildUniqueArtists(allAlbums);
         buildPlaylists();
 
-        const shuffled = [...albumsData].sort(() => Math.random() - 0.5);
-        renderAlbums(shuffled);
+        // ★ «Для вас» — со своей сортировкой
+        setupForYouSort();
+        renderAlbums(sortAlbums(allAlbums, currentForYouSort));
 
         generateAutoPlaylists();
         renderRecent();

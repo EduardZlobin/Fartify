@@ -180,7 +180,7 @@ function renderAlbumsReviews(grid) {
             cover: album.cover,
             title: album.title,
             artist: album.artist,
-            meta: getAlbumType(album.tracks.length) + (album.date ? ' • ' + album.date : ''),
+            meta: getAlbumType(album.tracks.length) + (album.date ? ' • ' + formatReleaseDate(album.date) : ''),
             releaseType: getAlbumType(album.tracks.length)
         });
         grid.appendChild(card);

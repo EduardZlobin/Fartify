@@ -80,8 +80,10 @@ function restorePlayerFromState() {
 
         currentTrackMeta = trackWithMeta;
 
+        const coverFile = resolveTrackCover(track, currentAlbum);
         audio.src = `music/${track.file}`;
-        playerCover.src = `photo/${resolveTrackCover(track, currentAlbum)}`;
+        playerCover.src = `photo/${coverFile}`;
+        updatePageBackground(coverFile);
         playerTitle.textContent = track.title || '';
         playerArtist.textContent = track.artist || currentAlbum.artist;
 
@@ -154,26 +156,83 @@ function playTrackByIndex(index, options = {}) {
     renderQueue();
 }
 
+let __bgActiveLayer = 1;
+
+function updatePageBackground(coverFile) {
+    if (!coverFile || coverFile === 'placeholder.jpg') return;
+    if (typeof extractCoverColors !== 'function') return;
+
+    extractCoverColors(coverFile).then(colors => {
+        if (!colors || !Array.isArray(colors)) return;
+
+        const [c1, c2] = colors;
+        const c1str = `${c1[0]}, ${c1[1]}, ${c1[2]}`;
+        const c2str = `${c2[0]}, ${c2[1]}, ${c2[2]}`;
+
+        // ★ В CSS-переменные — для прогресса/громкости
+        document.documentElement.style.setProperty('--accent-c1', c1str);
+        document.documentElement.style.setProperty('--accent-c2', c2str);
+
+        const layer1 = document.getElementById('bg-layer1');
+        const layer2 = document.getElementById('bg-layer2');
+        if (!layer1 || !layer2) return;
+
+        const nextLayer = __bgActiveLayer === 1 ? layer2 : layer1;
+        const prevLayer = __bgActiveLayer === 1 ? layer1 : layer2;
+
+        // ★ Только два ореола — оба из основного цвета, второй чуть-чуть вторичным
+        nextLayer.style.backgroundImage = `
+            radial-gradient(ellipse 90% 70% at 22% 18%, rgba(${c1str}, 0.55), transparent 72%),
+            radial-gradient(ellipse 80% 70% at 82% 82%, rgba(${c2str}, 0.45), transparent 74%)
+        `;
+
+        nextLayer.classList.add('is-active');
+        prevLayer.classList.remove('is-active');
+
+        __bgActiveLayer = __bgActiveLayer === 1 ? 2 : 1;
+    });
+}
+
 function loadAndPlay(track) {
     if (!track) return;
-    audio.src = `music/${track.file}`;
+
+    // ★ 1. Проверяем, откуда трек: из Supabase (http) или локальный
+    const audioSrc = track.file.startsWith('http') 
+        ? track.file 
+        : `music/${track.file}`;
+    audio.src = audioSrc;
+
+    // ★ 2. Проверяем обложку
     const trackCoverFile = resolveTrackCover(track, currentAlbum);
-    playerCover.src = `photo/${trackCoverFile}`;
+    const isCoverAbsolute = trackCoverFile.startsWith('http');
+    const coverSrc = isCoverAbsolute ? trackCoverFile : `photo/${trackCoverFile}`;
+    
+    playerCover.src = coverSrc;
+    
+    // Передаем правильный путь для смены фона страницы
+    updatePageBackground(coverSrc);
+
+    // 3. Остальное без изменений
     playerTitle.textContent = track.title || '';
-        playerArtist.innerHTML = formatTrackArtistsHtml(
-            track.file,
-            track.artist || (currentAlbum ? currentAlbum.artist : '')
-        );
+    playerArtist.innerHTML = formatTrackArtistsHtml(
+        track.file,
+        track.artist || (currentAlbum ? currentAlbum.artist : '')
+    );
+    
     currentTrackMeta = { ...track, artist: track.artist || (currentAlbum ? currentAlbum.artist : '') };
     updateLyricsNowPlaying(currentTrackMeta);
     updatePlayPauseIcon(true);
 
     const trackWithMeta = {
-        file: track.file, title: track.title,
+        file: track.file, 
+        title: track.title,
         artist: track.artist || (currentAlbum ? currentAlbum.artist : ''),
-        cover: trackCoverFile, albumTitle: track.albumTitle || currentAlbum?.title,
-        duration: track.duration, plays: track.plays
+        cover: trackCoverFile, // Сохраняем оригинальное имя/URL для избранного
+        albumTitle: track.albumTitle || currentAlbum?.title,
+        duration: track.duration, 
+        plays: track.plays
     };
+    
     const isFav = isFavorite(trackWithMeta);
     playerFavBtn.classList.toggle('active', isFav);
     updatePlayerHeartFill(isFav);

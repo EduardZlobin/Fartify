@@ -81,42 +81,87 @@ function extractCoverColors(coverFile) {
         img.crossOrigin = 'anonymous';
         img.onload = () => {
             try {
-                const S = 40;
+                const S = 64;
                 const c = document.createElement('canvas');
                 c.width = S; c.height = S;
                 const cx = c.getContext('2d');
                 cx.drawImage(img, 0, 0, S, S);
                 const data = cx.getImageData(0, 0, S, S).data;
-                const buckets = {};
 
+                // Собираем ВСЕ пиксели с их цветовыми характеристиками
+                const pixels = [];
                 for (let i = 0; i < data.length; i += 4) {
                     const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-                    if (a < 128) continue;
-                    const brightness = (r + g + b) / 3;
-                    if (brightness < 30 || brightness > 235) continue;
-                    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-                    const sat = (max - min) / (max || 1);
-                    if (sat < 0.12) continue;
-                    const qr = Math.round(r / 32) * 32;
-                    const qg = Math.round(g / 32) * 32;
-                    const qb = Math.round(b / 32) * 32;
-                    const key = qr + ',' + qg + ',' + qb;
-                    buckets[key] = (buckets[key] || 0) + 1;
+                    if (a < 200) continue;
+
+                    const mx = Math.max(r, g, b);
+                    const mn = Math.min(r, g, b);
+                    const lum = (r + g + b) / 3;
+                    const sat = mx === 0 ? 0 : (mx - mn) / mx;
+
+                    // жёсткие отсечки: не берём тёмное, светлое и серое
+                    if (lum < 25 || lum > 230) continue;
+                    if (sat < 0.25) continue;
+
+                    pixels.push({ r, g, b, sat, lum });
                 }
 
-                const sorted = Object.entries(buckets).sort((a, b) => b[1] - a[1]);
-                if (!sorted.length) return resolve(null);
+                if (pixels.length === 0) return resolve(null);
 
-                const top = sorted[0][0].split(',').map(Number);
-                const second = sorted[1] ? sorted[1][0].split(',').map(Number) : top;
-                resolve([top, second]);
+                // ★ Сортируем по насыщенности × светимости
+                pixels.sort((a, b) => (b.sat * b.lum) - (a.sat * a.lum));
+
+                // ★ Берём топ-30% самых насыщенных, усредняем
+                const topN = Math.max(1, Math.floor(pixels.length * 0.3));
+                const top = pixels.slice(0, topN);
+                let R = 0, G = 0, B = 0;
+                for (const p of top) { R += p.r; G += p.g; B += p.b; }
+                R = Math.round(R / top.length);
+                G = Math.round(G / top.length);
+                B = Math.round(B / top.length);
+
+                const c1 = [R, G, B];
+
+                // Второй цвет — далёкий по тону от первого
+                // Берём пиксель с максимальной насыщенностью, но другой хью
+                const hue1 = rgbToHueHelper(R, G, B);
+                let best2 = null, bestDist = 0;
+                for (const p of pixels) {
+                    const h = rgbToHueHelper(p.r, p.g, p.b);
+                    let d = Math.abs(h - hue1);
+                    if (d > 180) d = 360 - d;
+                    if (d > bestDist && p.sat > 0.4) {
+                        bestDist = d;
+                        best2 = [p.r, p.g, p.b];
+                    }
+                }
+                const c2 = best2 || c1;
+
+                resolve([c1, c2]);
             } catch (e) {
                 resolve(null);
             }
         };
         img.onerror = () => resolve(null);
-        img.src = `photo/${coverFile}`;
+        
+        // ★ ИЗМЕНЕННАЯ СТРОКА:
+        img.src = coverFile.startsWith('http') ? coverFile : `photo/${coverFile}`;
     });
+}
+
+// Хелпер для hue — без привязки к визуализатору
+function rgbToHueHelper(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if (mx === mn) return 0;
+    const d = mx - mn;
+    let h;
+    if (mx === r) h = ((g - b) / d) % 6;
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+    return h;
 }
 
 function applyCoverColorsToTextBlock(colors) {

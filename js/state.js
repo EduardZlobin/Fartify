@@ -79,6 +79,8 @@ const BLOCKED_STORAGE_KEY = 'fartify_blocked_tracks';
 const AUTO_PLAYLIST_COUNT = 5;
 const TRACKS_PER_PLAYLIST = 10;
 
+let customPlaylists = [];
+
 // ------------------------------------------------------------
 // initDom() — находит все DOM-элементы и присваивает их глобальным переменным
 // Вызывается первым делом в main.js

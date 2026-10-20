@@ -81,8 +81,8 @@ function restorePlayerFromState() {
         currentTrackMeta = trackWithMeta;
 
         const coverFile = resolveTrackCover(track, currentAlbum);
-        audio.src = `music/${track.file}`;
-        playerCover.src = `photo/${coverFile}`;
+audio.src = `music/${track.file}`;
+playerCover.src = resolveCoverUrl(coverFile);
         updatePageBackground(coverFile);
         playerTitle.textContent = track.title || '';
         playerArtist.textContent = track.artist || currentAlbum.artist;
@@ -204,10 +204,8 @@ function loadAndPlay(track) {
 
     // ★ 2. Проверяем обложку
     const trackCoverFile = resolveTrackCover(track, currentAlbum);
-    const isCoverAbsolute = trackCoverFile.startsWith('http');
-    const coverSrc = isCoverAbsolute ? trackCoverFile : `photo/${trackCoverFile}`;
-    
-    playerCover.src = coverSrc;
+const coverSrc = resolveCoverUrl(trackCoverFile);
+playerCover.src = coverSrc;
     
     // Передаем правильный путь для смены фона страницы
     updatePageBackground(coverSrc);
@@ -247,11 +245,15 @@ function loadAndPlay(track) {
 
 function updateMediaSession(track) {
     if (!('mediaSession' in navigator)) return;
+    
+const coverFile = resolveTrackCover(track, currentAlbum);
+const coverSrc = resolveCoverUrl(coverFile);
+
     navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title || 'Неизвестный трек',
         artist: formatTrackArtists(track.file, track.artist || 'Неизвестный исполнитель'),
         album: track.albumTitle || '',
-        artwork: [{ src: `photo/${resolveTrackCover(track, currentAlbum)}`, sizes: '512x512', type: 'image/jpeg' }]
+        artwork: [{ src: coverSrc, sizes: '512x512', type: 'image/jpeg' }]
     });
 }
 

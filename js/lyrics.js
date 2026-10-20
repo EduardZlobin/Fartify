@@ -229,8 +229,8 @@ function seekToLyricLine(lineEl) {
 // ────────────────────────────────────────────────────────────
 function updateLyricsPanel(track) {
     const coverFile = resolveTrackCover(track, currentAlbum);
-    lyricsCover.src = `photo/${coverFile}`;
-    lyricsBackground.style.backgroundImage = `url(photo/${coverFile})`;
+    lyricsCover.src = resolveCoverUrl(coverFile);
+lyricsBackground.style.backgroundImage = `url(${resolveCoverUrl(coverFile)})`;
 
     // ★ Фон блока «Текст» — в цвет обложки
     extractCoverColors(coverFile).then(applyCoverColorsToTextBlock);

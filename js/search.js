@@ -244,7 +244,7 @@ function renderSearchResults(query) {
             const type = getAlbumType(album.tracks.length);
             html += `
                 <div class="search-result-item" data-type="album" data-title="${escapeHtml(album.title)}">
-                    <img class="search-result-cover" src="photo/${album.cover}" onerror="this.src='photo/placeholder.jpg'" alt="">
+                    <img class="search-result-cover" src="${resolveCoverUrl(album.cover)}" onerror="this.src='photo/placeholder.jpg'" alt="">
                     <div class="search-result-info">
                         <div class="search-result-title">${escapeHtml(album.title)}</div>
                         <div class="search-result-meta">
@@ -263,7 +263,7 @@ function renderSearchResults(query) {
         results.tracks.forEach(track => {
             html += `
                 <div class="search-result-item" data-type="track" data-file="${escapeHtml(track.file)}">
-                    <img class="search-result-cover" src="photo/${track.cover}" onerror="this.src='photo/placeholder.jpg'" alt="">
+                    <img class="search-result-cover" src="${resolveCoverUrl(track.cover)}" onerror="this.src='photo/placeholder.jpg'" alt="">
                     <div class="search-result-info">
                         <div class="search-result-title">${escapeHtml(track.title)}</div>
                         <div class="search-result-meta">

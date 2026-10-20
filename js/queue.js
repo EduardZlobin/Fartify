@@ -265,16 +265,16 @@ function createQueueItem(item, position) {
     if (item.index >= 0) row.dataset.trackIndex = String(item.index);
     row.title = `Включить: ${track.title || 'Без названия'}`;
 
-    const cover = track.cover || currentAlbum?.cover || 'placeholder.jpg';
+    const cover = resolveTrackCover(track, currentAlbum);
     const artistHtml = formatTrackArtistsHtml(
         track.file,
         track.artist || currentAlbum?.artist || ''
     );
     const albumTitle = track.albumTitle || (currentAlbum && !currentAlbum.isPlaylist ? currentAlbum.title : '');
 
-    row.innerHTML = `
+row.innerHTML = `
         <span class="queue-position">${position + 1}</span>
-        <img class="queue-cover" src="photo/${escapeHtml(cover)}" alt="" onerror="this.src='photo/placeholder.jpg'">
+        <img class="queue-cover" src="${resolveCoverUrl(cover)}" alt="" onerror="this.src='photo/placeholder.jpg'">
         <div class="queue-info">
             <div class="queue-title">${escapeHtml(track.title || 'Без названия')}</div>
             <div class="queue-meta">${artistHtml}${albumTitle ? ` <span>•</span> ${escapeHtml(albumTitle)}` : ''}</div>

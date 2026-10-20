@@ -38,7 +38,7 @@ function renderArtists(artists) {
         card.className = 'artist-card';
         card.href = BASE_PATH + 'Artist/' + encodeURIComponent(artist.name);
         card.innerHTML = `
-            <img src="photo/${escapeHtml(artist.cover)}" alt="${escapeHtml(artist.name)}" onerror="this.src='photo/placeholder.jpg'">
+            <img src="${resolveCoverUrl(artist.cover)}" alt="${escapeHtml(artist.name)}" onerror="this.src='photo/placeholder.jpg'">
             <div class="artist-name">${escapeHtml(artist.name)}</div>
             <div class="artist-plays">${artist.totalPlays.toLocaleString()} прослушиваний</div>
         `;
@@ -86,7 +86,7 @@ function showArtistPage(artistName) {
 
     const artistEntry = artistsMap[artistName];
     const avatarFile = artistEntry ? artistEntry.avatar : getLatestAlbumCover(artistName);
-    artistAvatar.src = `photo/${avatarFile}`;
+    artistAvatar.src = resolveCoverUrl(avatarFile);
     artistAvatar.onerror = () => { artistAvatar.src = 'photo/placeholder.jpg'; };
     artistNameElem.textContent = artistName;
 
@@ -207,7 +207,7 @@ function renderArtistPopularTracks(artistName, topTracks, artistAlbums, avatarFi
                 : 'placeholder.jpg';
 
             row.innerHTML = `
-                <img class="track-cover" src="photo/${escapeHtml(coverFile)}" alt="" onerror="this.style.display='none'">
+                <img class="track-cover" src="${resolveCoverUrl(coverFile)}" alt="" onerror="this.style.display='none'">
                 <span class="track-num">${idx + 1}</span>
                 <div class="track-title-col">
                     <span class="track-title-main">${escapeHtml(track.title || '')}</span>

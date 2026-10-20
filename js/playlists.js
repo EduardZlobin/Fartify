@@ -216,7 +216,7 @@ function showPlaylistModal(config) {
         if (isBlocked(track.file)) row.classList.add('is-blocked');
 
         let rowHTML = `<span class="track-num">${index + 1}</span>`;
-        rowHTML += `<img class="track-cover" src="photo/${track.cover}" alt="" onerror="this.style.display='none'">`;
+        rowHTML += `<img class="track-cover" src="${resolveCoverUrl(track.cover)}" alt="" onerror="this.style.display='none'">`;
             rowHTML += `<div class="track-title-col"><span>${escapeHtml(track.title)}</span><span class="track-artist">${formatTrackArtistsHtml(track.file, track.artist)}</span></div>`;
         if (showAlbum) rowHTML += `<span class="track-album">${track.albumTitle || ''}</span>`;
         if (showPlays) rowHTML += `<span class="track-plays">${track.plays || ''}</span>`;

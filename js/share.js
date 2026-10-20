@@ -179,7 +179,7 @@ function initShareFeature() {
 
         let coverImg = null;
         if (config.cover) {
-            try { coverImg = await loadImage(`photo/${config.cover}`); } catch (e) {}
+            try { coverImg = await loadImage(resolveCoverUrl(config.cover)); } catch (e) {}
         }
 
         let colorA = [139, 92, 246];

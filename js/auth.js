@@ -88,13 +88,10 @@ function updateAuthUI() {
 }
 
 async function initAuth() {
-    // ★ Очистка URL от токенов после редиректа
-    if (window.location.hash && window.location.hash.includes('access_token')) {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-    
     console.log("Запуск initAuth...");
+    
     try {
+        // 1. Сначала получаем текущую сессию (если она уже была в памяти)
         const { data: { session } } = await window.supabaseClient.auth.getSession();
         
         if (session) {
@@ -104,8 +101,15 @@ async function initAuth() {
         
         updateAuthUI();
 
+        // 2. Слушаем события входа/выхода
         window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
             console.log("Auth state changed:", event);
+
+            // ★ Если вход успешен, а в URL есть ?code=, чистим его
+            if (event === 'SIGNED_IN' && window.location.search.includes('code=')) {
+                window.history.replaceState(null, '', window.location.pathname);
+            }
+
             if (event === 'SIGNED_IN' && session) {
                 currentUser = session.user;
                 await fetchProfile(currentUser.id);

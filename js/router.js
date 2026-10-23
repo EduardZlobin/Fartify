@@ -37,6 +37,10 @@ function showMainContent() {
     const rvPage = document.getElementById('reviews-page');
     if (rvPage) rvPage.classList.add('hidden');
 
+    // ★ Скрываем страницу угадайки при переходе на главную
+    const guessPage = document.getElementById('guess-page');
+    if (guessPage) guessPage.classList.add('hidden');
+
     mainContent.classList.remove('hidden');
 
     renderRecent();
@@ -77,11 +81,27 @@ function handleRouting() {
         const path = getRelativePath();
         __routerLastPath = path;
 
+        // ★ Если мы уходим НЕ на страницу угадайки — останавливаем её и разблокируем сайт
+        if (path !== '/guess' && typeof stopGuessGame === 'function') {
+            stopGuessGame();
+        }
+
         const segments = path.replace(/^\/+/, '').split('/').filter(Boolean);
 
         console.log('[router] path:', path, '| segments:', segments);
 
-        // /favorites — Избранное (★ ставим ПЕРВЫМ, чтобы точно не перебивалось)
+        // /guess — Угадайка (★ Добавлено в самое начало роутинга)
+        if (path === '/guess') {
+            console.log('[router] → startGuessPage()');
+            if (typeof startGuessPage === 'function') {
+                startGuessPage();
+            } else {
+                console.error('Функция startGuessPage не найдена. Проверьте подключение js/guess.js');
+            }
+            return;
+        }
+
+        // /favorites — Избранное
         if (path === '/favorites') {
             console.log('[router] → openPlaylistModal()');
             try {
@@ -149,14 +169,6 @@ function handleRouting() {
                 return;
             }
         }
-
-        // /reviews — временно недоступно
-        // if (path === '/reviews') {
-        //     stopGlobalShuffle();
-        //     showReviewsPage();
-        //     updateSidebarActive();
-        //     return;
-        // }
 
         // Неизвестный путь / корень → тихо главная
         console.log('[router] → showMainContent()');

@@ -196,6 +196,11 @@ function updatePageBackground(coverFile) {
 function loadAndPlay(track) {
     if (!track) return;
 
+    // ★ Если запускается обычный трек, останавливаем угадайку
+    if (typeof stopGuessGame === 'function') {
+        stopGuessGame();
+    }
+
     // ★ 1. Проверяем, откуда трек: из Supabase (http) или локальный
     const audioSrc = track.file.startsWith('http') 
         ? track.file 

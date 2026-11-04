@@ -1032,5 +1032,20 @@
                 "plays": "67 433"
             }
         ]
+    },
+        {
+        "title": "Эдик плачет",
+        "artist": "RadioGladoon",
+        "cover": "45.png",
+        "date": "2026-11-4",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Эдик плачет",
+                "file": "138.mp3",
+                "duration": "2:29",
+                "plays": "97 453"
+            }
+        ]
     }
 ]

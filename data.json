@@ -1140,5 +1140,20 @@
                 "plays": "87 547"
             }
         ]
+    },
+        {
+        "title": "Дальнобой крутий!",
+        "artist": "Дима Гладун",
+        "cover": "46.jpg",
+        "date": "2026-11-10",
+        "label": "© 2026 GladoonMusic⠀⠀⠀℗ 2026 GladoonMusic",
+        "tracks": [
+            {
+                "title": "Дальнобой крутий!",
+                "file": "145.mp3",
+                "duration": "2:29",
+                "plays": "121 364"
+            }
+        ]
     }
 ]
